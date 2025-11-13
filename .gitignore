@@ -1,30 +1,48 @@
-# These are some examples of commonly ignored file patterns.
-# You should customize this list as applicable to your project.
-# Learn more about .gitignore:
-#     https://www.atlassian.com/git/tutorials/saving-changes/gitignore
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
 
-# Node artifact files
-node_modules/
-dist/
+node_modules
+.DS_Store
+dist
+dist-ssr
+coverage
+bkp
+*.local
+
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.yarn
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+*.tsbuildinfo
+
+.eslintcache
+
+# Cypress
+/cypress/videos/
+/cypress/screenshots/
+
+# Vitest
+__screenshots__/
 
 # Compiled Java class files
 *.class
 
 # Compiled Python bytecode
 *.py[cod]
-
-# Log files
-*.log
-
-# Package files
-*.jar
-
-# Maven
-target/
-dist/
-
-# JetBrains IDE
-.idea/
 
 # Unit test reports
 TEST*.xml
@@ -48,3 +66,8 @@ Thumbs.db
 *.mov
 *.wmv
 
+# Env 
+.env
+.env.*
+!.env.example
+!.env.example.*
