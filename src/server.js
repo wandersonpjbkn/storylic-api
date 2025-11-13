@@ -148,13 +148,14 @@ io.on('connection', (socket) => {
 });
 
 const PORT = process.env.API_PORT || 3000;
-const HOST = process.env.NODE_ENV === 'development'
-  ? process.env.API_LOCALHOST
-  : process.env.API_HOST;
 
-  console.log(process.env.NODE_ENV)
-
-server.listen(PORT, HOST, () => {
-  console.log(`🚀 Servidor rodando em https://${HOST}:${PORT}`);
-  console.log(`Acesse na LAN em: Seu_IP_Local:${PORT}`);
-});
+if (process.env.NODE_ENV === 'development') {
+  server.listen(PORT, HOST, () => {
+    console.log(`🚀 Servidor rodando em https://${process.env.API_LOCALHOST}:${PORT}`);
+    console.log(`Acesse na LAN em: Seu_IP_Local:${PORT}`);
+  });
+} else {
+  server.listen(PORT, () => {
+    console.log(`🚀 Servidor rodando`);
+  });
+}
