@@ -150,7 +150,7 @@ io.on('connection', (socket) => {
 const PORT = process.env.API_PORT || 3000;
 
 if (process.env.NODE_ENV === 'development') {
-  server.listen(PORT, HOST, () => {
+  server.listen(PORT, process.env.API_LOCALHOST, () => {
     console.log(`🚀 Servidor rodando em https://${process.env.API_LOCALHOST}:${PORT}`);
     console.log(`Acesse na LAN em: Seu_IP_Local:${PORT}`);
   });
