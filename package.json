@@ -1,0 +1,19 @@
+{
+  "name": "storylic-api",
+  "version": "1.0.0",
+  "description": "Servidor WebSocket para o jogo Storylicr",
+  "main": "./src/server.js",
+  "scripts": {
+    "start": "NODE_ENV=production node ./src/server.js",
+    "dev": "NODE_ENV=development nodemon ./src/server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^4.18.2",
+    "socket.io": "^4.5.4"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}
