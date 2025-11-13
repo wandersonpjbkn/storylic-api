@@ -40,50 +40,49 @@ io.on('connection', (socket) => {
       name: playerName
     });
     
-    console.log(`Jogador ${playerName} entrou na sala ${gameId}`);
-    console.log(`Sala atual com ${game.players.size} jogadores`);
+    console.log(`Jogador [ ${playerName} ] entrou na sala [ ${gameId} ]. Sala com [ ${game.players.size} ] players`);
     
     io.to(gameId).emit('game-state', {
+      currentPlayer: game.currentPlayer,
       players: Array.from(game.players)
     });
   });
 
-  socket.on('start-game', ({ gameId, playerName, currentPlayer, numPlayers, turns }) => {
+  socket.on('start-game', ({ gameId, currentPlayer, numPlayers, turns }) => {
     const game = games.get(gameId);
+
     if (game) {
-      game.numPlayers = numPlayers;
-      game.gameState = 'waiting';
       game.currentPlayer = currentPlayer;
-      game.playerName = playerName;
-      game.currentTurn = 1;
+      game.numPlayers = numPlayers;
       game.turns = turns;
+      game.currentTurn = 1;
+      game.gameState = 'waiting';
       
       io.to(gameId).emit('game-started', game);
       
       io.to(gameId).emit('player-turn', {
-        playerName,
         currentPlayer,
         currentTurn: 1 
       });
     }
   });
 
-  socket.on('finish-storytelling', ({ gameId }) => {
+  socket.on('finish-storytelling', ({ gameId, currentPlayer }) => {
     const game = games.get(gameId);
 
     if (!game) return;
 
     const playersArray = Array.from(game.players);
-    const currentPlayerIndex = playersArray.findIndex(({ id }) => id === game.currentPlayer);
+
+    const currentPlayerIndex = playersArray.findIndex(({ id }) => id === currentPlayer);
     const nextPlayerIndex = currentPlayerIndex + 1
     
-    if (nextPlayerIndex >= game.players.size) {  
+    if (nextPlayerIndex >= game.players.size) {
       if (game.currentTurn < game.turns) {
         game.currentTurn++;
         game.currentPlayer = playersArray[0].id;
         
         io.to(gameId).emit('player-turn', {
-          playerName: game.playerName,
           currentPlayer: game.currentPlayer,
           currentTurn: game.currentTurn
         });
@@ -93,12 +92,13 @@ io.on('connection', (socket) => {
       }
     } else {
       game.currentPlayer = playersArray[nextPlayerIndex].id;
-      
-      io.to(gameId).emit('player-turn', {
-        playerName: playersArray[nextPlayerIndex].name,
+
+      const data = {
         currentPlayer: game.currentPlayer,
         currentTurn: game.currentTurn
-      });
+      }
+      
+      io.to(gameId).emit('player-turn', data);
     }
   });
 
@@ -132,11 +132,12 @@ io.on('connection', (socket) => {
         game.players.delete(item);
 
         io.to(gameId).emit('game-state', {
+          currentPlayer: game.currentPlayer,
           players: Array.from(game.players)
         });
             
         if (game.players.size === 0) {
-          console.log(`Sala ${gameId} removida (sem jogadores)`);
+          console.log(`Sala [ ${gameId} ] removida devido ausência de jogadores`);
 
           io.to(gameId).emit('game-reset');
           
