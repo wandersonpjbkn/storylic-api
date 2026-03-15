@@ -14,15 +14,25 @@ export const resetGameHandler = (io: Server, socket: Socket) => {
 
     game.currentPlayer = null
     game.currentTurn = 1
-    // Fix: 'lobby' em vez de 'setup' — a sala existe, jogadores conectados
     game.gameState = 'lobby'
     game.turnStartedAt = null
+    // Reseta turnDurationMs para o valor do timerTurn atual (pode ter sido reconfigurado)
+    game.turnDurationMs = game.timerTurn * 1000
 
     console.log(`[reset-game] Sala "${gameId}" resetada com ${game.players.size} jogador(es)`)
 
-    // Fix: reason='new-game' para o frontend saber que é reinício de partida
-    // (diferente de sala esvaziada pelo disconnect, que não tem reason)
-    io.to(gameId).emit('game-reset', { reason: 'new-game' })
+    // creatorId = primeiro jogador que entrou (mantém ordem de inserção no Map)
+    const firstPlayer = getPlayersArray(game)[0]
+    const creatorId = firstPlayer?.id ?? null
+
+    io.to(gameId).emit('game-reset', {
+      reason: 'new-game',
+      creatorId,
+      // Envia configs atuais para todos sincronizarem
+      timerTurn: game.timerTurn,
+      timerStory: game.timerStory,
+      turns: game.turns,
+    })
     io.to(gameId).emit('game-state', {
       currentPlayer: game.currentPlayer,
       players: getPlayersArray(game),

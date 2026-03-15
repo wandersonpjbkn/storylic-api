@@ -6,6 +6,7 @@ import { Server } from 'socket.io'
 import cors from 'cors'
 
 import { joinGameHandler } from './handlers/joinGame.js'
+import { configGameHandler } from './handlers/configGame.js'
 import { startGameHandler } from './handlers/startGame.js'
 import { finishStorytellingHandler } from './handlers/finishStorytelling.js'
 import { cardsSelectedHandler } from './handlers/cardsSelected.js'
@@ -37,6 +38,7 @@ io.on('connection', (socket) => {
 
   // Registra todos os handlers para este socket
   joinGameHandler(io, socket)
+  configGameHandler(io, socket)
   startGameHandler(io, socket)
   finishStorytellingHandler(io, socket)
   cardsSelectedHandler(io, socket)
