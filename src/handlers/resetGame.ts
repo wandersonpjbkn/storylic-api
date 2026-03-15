@@ -2,37 +2,47 @@ import type { Server, Socket } from 'socket.io'
 
 import type { ResetGamePayload } from '../types/index.js'
 import { getGame, getPlayersArray, getRoomsSnapshot } from '../utils/games.js'
+import { isRateLimited } from '../utils/rateLimiter.js'
+import { validateGameId } from '../utils/validate.js'
 
 export const resetGameHandler = (io: Server, socket: Socket) => {
   socket.on('reset-game', ({ gameId }: ResetGamePayload) => {
-    const game = getGame(gameId)
+    if (isRateLimited(socket.id, 'reset-game')) return
 
+    const err = validateGameId(gameId)
+    if (err) return
+
+    const game = getGame(gameId)
     if (!game) {
       console.warn(`[reset-game] Sala "${gameId}" não encontrada`)
       return
     }
 
-    game.currentPlayer = null
-    game.currentTurn = 1
-    game.gameState = 'lobby'
-    game.turnStartedAt = null
-    // Reseta turnDurationMs para o valor do timerTurn atual (pode ter sido reconfigurado)
+    // Apenas jogadores da sala podem resetar
+    if (!game.players.has(socket.id)) {
+      console.warn(`[reset-game] Socket ${socket.id.slice(0, 8)} não pertence à sala "${gameId}"`)
+      return
+    }
+
+    game.currentPlayer  = null
+    game.currentTurn    = 1
+    game.gameState      = 'lobby'
+    game.turnStartedAt  = null
     game.turnDurationMs = game.timerTurn * 1000
 
-    console.log(`[reset-game] Sala "${gameId}" resetada com ${game.players.size} jogador(es)`)
+    console.log(`[reset-game] "${gameId}" resetada com ${game.players.size} jogador(es)`)
 
-    // creatorId = primeiro jogador que entrou (mantém ordem de inserção no Map)
     const firstPlayer = getPlayersArray(game)[0]
-    const creatorId = firstPlayer?.id ?? null
+    const creatorId   = firstPlayer?.id ?? null
 
     io.to(gameId).emit('game-reset', {
       reason: 'new-game',
       creatorId,
-      // Envia configs atuais para todos sincronizarem
-      timerTurn: game.timerTurn,
+      timerTurn:  game.timerTurn,
       timerStory: game.timerStory,
-      turns: game.turns,
+      turns:      game.turns,
     })
+
     io.to(gameId).emit('game-state', {
       currentPlayer: game.currentPlayer,
       players: getPlayersArray(game),

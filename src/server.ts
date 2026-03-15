@@ -4,6 +4,7 @@ import express from 'express'
 import { createServer } from 'http'
 import { Server } from 'socket.io'
 import cors from 'cors'
+import helmet from 'helmet'
 
 import { joinGameHandler } from './handlers/joinGame.js'
 import { configGameHandler } from './handlers/configGame.js'
@@ -16,10 +17,33 @@ import { disconnectHandler } from './handlers/disconnect.js'
 import { getRoomsHandler } from './handlers/getRooms.js'
 import { rejoinGameHandler } from './handlers/rejoinGame.js'
 
-const app = express()
-app.use(cors())
+const CORS_ORIGIN = process.env.CORS_ORIGIN
+if (!CORS_ORIGIN && process.env.NODE_ENV === 'production') {
+  console.error('❌ CORS_ORIGIN não definida em produção. Encerrando.')
+  process.exit(1)
+}
 
-// Health check simples para verificar se o servidor está no ar
+const allowedOrigins = CORS_ORIGIN
+  ? CORS_ORIGIN.split(',').map((o) => o.trim())
+  : ['http://localhost:8080', 'http://localhost:5173']
+
+const app = express()
+
+// Headers de segurança HTTP
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+  }),
+)
+
+app.use(
+  cors({
+    origin: allowedOrigins,
+    methods: ['GET', 'POST'],
+    credentials: true,
+  }),
+)
+
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() })
 })
@@ -28,15 +52,15 @@ const httpServer = createServer(app)
 
 const io = new Server(httpServer, {
   cors: {
-    origin: process.env.CORS_ORIGIN ?? '*',
+    origin: allowedOrigins,
     methods: ['GET', 'POST'],
   },
+  maxHttpBufferSize: 64 * 1024,
 })
 
 io.on('connection', (socket) => {
-  console.log(`[connection] Novo jogador conectado: ${socket.id}`)
+  console.log(`[connection] Novo jogador: ${socket.id.slice(0, 8)}`)
 
-  // Registra todos os handlers para este socket
   joinGameHandler(io, socket)
   configGameHandler(io, socket)
   startGameHandler(io, socket)
@@ -55,6 +79,7 @@ const HOST = process.env.API_LOCALHOST
 if (process.env.NODE_ENV === 'development' && HOST) {
   httpServer.listen(PORT, HOST, () => {
     console.log(`🚀 Servidor rodando em http://${HOST}:${PORT}`)
+    console.log(`   CORS permitido: ${allowedOrigins.join(', ')}`)
   })
 } else {
   httpServer.listen(PORT, () => {

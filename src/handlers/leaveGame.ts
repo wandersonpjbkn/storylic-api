@@ -2,17 +2,23 @@ import type { Server, Socket } from 'socket.io'
 
 import type { LeaveGamePayload } from '../types/index.js'
 import { getGame, getPlayersArray, deleteGame, getRoomsSnapshot } from '../utils/games.js'
+import { isRateLimited } from '../utils/rateLimiter.js'
+import { validateGameId } from '../utils/validate.js'
 
 export const leaveGameHandler = (io: Server, socket: Socket) => {
   socket.on('leave-game', ({ gameId }: LeaveGamePayload) => {
-    const game = getGame(gameId)
+    if (isRateLimited(socket.id, 'leave-game')) return
 
-    if (!game) return
+    const err = validateGameId(gameId)
+    if (err) return
+
+    const game = getGame(gameId)
+    if (!game || !game.players.has(socket.id)) return
 
     game.players.delete(socket.id)
     socket.leave(gameId)
 
-    console.log(`[leave-game] Jogador ${socket.id} saiu da sala "${gameId}"`)
+    console.log(`[leave-game] ${socket.id.slice(0, 8)} saiu da sala "${gameId}"`)
 
     if (game.players.size === 0) {
       deleteGame(gameId)

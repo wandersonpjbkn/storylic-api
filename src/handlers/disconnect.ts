@@ -7,11 +7,15 @@ import {
   deleteGame,
   getRoomsSnapshot,
 } from '../utils/games.js'
+import { clearSocket } from '../utils/rateLimiter.js'
 import { RESERVATION_TTL_MS } from './rejoinGame.js'
 
 export const disconnectHandler = (io: Server, socket: Socket) => {
   socket.on('disconnect', () => {
-    console.log(`[disconnect] Jogador desconectado: ${socket.id}`)
+    console.log(`[disconnect] ${socket.id.slice(0, 8)} desconectou`)
+
+    // Limpa entradas de rate limit para este socket
+    clearSocket(socket.id)
 
     games.forEach((game, gameId) => {
       const player = game.players.get(socket.id)
@@ -22,13 +26,13 @@ export const disconnectHandler = (io: Server, socket: Socket) => {
       player.disconnectedAt = Date.now()
 
       io.to(gameId).emit('player-disconnected', {
-        playerId: socket.id,
-        playerName: player.name,
+        playerId:    socket.id,
+        playerName:  player.name,
         reservedFor: RESERVATION_TTL_MS,
       })
 
       console.log(
-        `[disconnect] Vaga de "${player.name}" reservada por ${RESERVATION_TTL_MS / 1000}s na sala "${gameId}"`,
+        `[disconnect] Vaga de "${player.name}" reservada por ${RESERVATION_TTL_MS / 1000}s em "${gameId}"`,
       )
 
       player.reservationTimer = setTimeout(() => {
@@ -36,7 +40,7 @@ export const disconnectHandler = (io: Server, socket: Socket) => {
         if (!currentEntry || currentEntry.disconnectedAt === undefined) return
 
         game.players.delete(socket.id)
-        console.log(`[disconnect] Vaga de "${player.name}" expirou — removido da sala "${gameId}"`)
+        console.log(`[disconnect] Vaga de "${player.name}" expirou em "${gameId}"`)
 
         if (game.players.size === 0) {
           console.log(`[disconnect] Sala "${gameId}" removida — sem jogadores`)
@@ -44,12 +48,12 @@ export const disconnectHandler = (io: Server, socket: Socket) => {
           deleteGame(gameId)
         } else {
           const isGameActive =
-            game.gameState === 'playing' ||
+            game.gameState === 'playing'      ||
             game.gameState === 'storytelling' ||
             game.gameState === 'waiting'
 
           if (isGameActive && game.currentPlayer === socket.id) {
-            const allPlayers = getPlayersArray(game)
+            const allPlayers    = getPlayersArray(game)
             const onlinePlayers = getOnlinePlayers(game)
 
             if (onlinePlayers.length === 0) {
@@ -60,7 +64,7 @@ export const disconnectHandler = (io: Server, socket: Socket) => {
             }
 
             const removedIndex = allPlayers.findIndex((p) => p.id === socket.id)
-            const nextPlayer =
+            const nextPlayer   =
               onlinePlayers.find((p) => {
                 const idx = allPlayers.findIndex((a) => a.id === p.id)
                 return idx > removedIndex
@@ -71,13 +75,13 @@ export const disconnectHandler = (io: Server, socket: Socket) => {
 
             io.to(gameId).emit('player-turn', {
               currentPlayer: game.currentPlayer,
-              currentTurn: game.currentTurn,
+              currentTurn:   game.currentTurn,
             })
           }
 
           io.to(gameId).emit('game-state', {
             currentPlayer: game.currentPlayer,
-            players: getOnlinePlayers(game),
+            players:       getOnlinePlayers(game),
           })
         }
 

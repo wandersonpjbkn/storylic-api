@@ -22,45 +22,8 @@ export interface Game {
   players: Map<string, Player>
   turnStartedAt: number | null
   turnDurationMs: number
-  // Configurados pelo criador via config-game antes de iniciar
   timerTurn: number
   timerStory: number
-}
-
-export interface JoinGamePayload {
-  gameId: string
-  playerName: string
-}
-
-export interface RejoinGamePayload {
-  gameId: string
-  token: string
-}
-
-export interface StartGamePayload {
-  gameId: string
-  currentPlayer: string
-  numPlayers: number
-  turns: number
-}
-
-export interface FinishStorytellingPayload {
-  gameId: string
-  currentPlayer: string
-}
-
-export interface CardsSelectedPayload {
-  gameId: string
-  cards: Card[]
-  playerNumber: string
-}
-
-export interface ResetGamePayload {
-  gameId: string
-}
-
-export interface LeaveGamePayload {
-  gameId: string
 }
 
 export interface JoinGamePayload {
@@ -105,4 +68,13 @@ export interface ResetGamePayload {
 
 export interface LeaveGamePayload {
   gameId: string
+}
+
+export interface EventRecord {
+  timestamps: number[]
+}
+
+export interface RateLimitOptions {
+  maxRequests: number // máximo de chamadas permitidas na janela
+  windowMs: number // tamanho da janela em ms
 }
