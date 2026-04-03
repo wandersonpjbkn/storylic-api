@@ -1,10 +1,10 @@
 import type { Server, Socket } from 'socket.io'
 
-import type { RejoinGamePayload } from '../types/index.js'
-import { getGame, getPlayersArray, getOnlinePlayers, getRoomsSnapshot } from '../utils/games.js'
-import { generateToken, tokensAreEqual } from '../utils/tokens.js'
-import { isRateLimited } from '../utils/rateLimiter.js'
-import { validateGameId, validateToken } from '../utils/validate.js'
+import type { RejoinGamePayload } from '@/types/index.js'
+import { getGame, getPlayersArray, getOnlinePlayers, getRoomsSnapshot } from '@/utils/games.js'
+import { generateToken, tokensAreEqual } from '@/utils/tokens.js'
+import { isRateLimited } from '@/utils/rateLimiter.js'
+import { validateGameId, validateToken } from '@/utils/validate.js'
 
 export const RESERVATION_TTL_MS = 60_000
 
@@ -16,10 +16,16 @@ export const rejoinGameHandler = (io: Server, socket: Socket) => {
     }
 
     const gameIdErr = validateGameId(gameId)
-    if (gameIdErr) { socket.emit('rejoin-error', { reason: gameIdErr }); return }
+    if (gameIdErr) {
+      socket.emit('rejoin-error', { reason: gameIdErr })
+      return
+    }
 
     const tokenErr = validateToken(token)
-    if (tokenErr) { socket.emit('rejoin-error', { reason: 'Sessão inválida.' }); return }
+    if (tokenErr) {
+      socket.emit('rejoin-error', { reason: 'Sessão inválida.' })
+      return
+    }
 
     const game = getGame(gameId)
     if (!game) {
@@ -27,7 +33,7 @@ export const rejoinGameHandler = (io: Server, socket: Socket) => {
       return
     }
 
-    const playersArray  = getPlayersArray(game)
+    const playersArray = getPlayersArray(game)
     const existingPlayer = playersArray.find((p) => tokensAreEqual(p.token, token))
 
     if (!existingPlayer) {
@@ -48,10 +54,10 @@ export const rejoinGameHandler = (io: Server, socket: Socket) => {
     const oldSocketId = existingPlayer.id
 
     game.players.delete(oldSocketId)
-    existingPlayer.id           = socket.id
+    existingPlayer.id = socket.id
     existingPlayer.disconnectedAt = undefined
 
-    const newToken       = generateToken()
+    const newToken = generateToken()
     existingPlayer.token = newToken
     game.players.set(socket.id, existingPlayer)
 
@@ -61,7 +67,7 @@ export const rejoinGameHandler = (io: Server, socket: Socket) => {
 
     socket.join(gameId)
 
-    const elapsedMs       = game.turnStartedAt ? Date.now() - game.turnStartedAt : 0
+    const elapsedMs = game.turnStartedAt ? Date.now() - game.turnStartedAt : 0
     const remainingTurnMs = Math.max(0, game.turnDurationMs - elapsedMs)
 
     // IDs truncados nos logs — nunca logar tokens
@@ -70,22 +76,22 @@ export const rejoinGameHandler = (io: Server, socket: Socket) => {
     )
 
     socket.emit('rejoin-ack', {
-      gameState:      game.gameState,
-      currentPlayer:  game.currentPlayer,
-      currentTurn:    game.currentTurn,
-      turns:          game.turns,
-      players:        getOnlinePlayers(game),
-      isMyTurn:       game.currentPlayer === socket.id,
+      gameState: game.gameState,
+      currentPlayer: game.currentPlayer,
+      currentTurn: game.currentTurn,
+      turns: game.turns,
+      players: getOnlinePlayers(game),
+      isMyTurn: game.currentPlayer === socket.id,
       remainingTurnMs,
       newToken,
-      timerTurn:      game.timerTurn,
-      timerStory:     game.timerStory,
+      timerTurn: game.timerTurn,
+      timerStory: game.timerStory,
     })
 
     socket.to(gameId).emit('player-reconnected', {
-      playerId:   socket.id,
+      playerId: socket.id,
       playerName: existingPlayer.name,
-      players:    getOnlinePlayers(game),
+      players: getOnlinePlayers(game),
     })
 
     io.emit('rooms-updated', getRoomsSnapshot())

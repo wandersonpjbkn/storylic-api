@@ -1,0 +1,28 @@
+export enum SocketEvents {
+  // on
+  ON_CONFIG_GAME = 'config-game',
+  ON_JOIN_GAME = 'join-game',
+  ON_REJOIN_GAME = 'rejoin-game',
+  ON_START_GAME = 'start-game',
+  ON_LEAVE_GAME = 'leave-game',
+  ON_CARDS_SELECTED = 'cards-selected',
+  ON_FINISH_STORYTELLING = 'finish-storytelling',
+  ON_DISCONNECT = 'disconnect',
+
+  // emit
+  EMIT_CONFIG_ERROR = 'config-error',
+  EMIT_JOIN_ERROR = 'join-error',
+  EMIT_JOIN_ACK = 'join-ack',
+  EMIT_REJOIN_ERROR = 'rejoin-error',
+  EMIT_LEAVE_ERROR = 'leave-error',
+  EMIT_START_ERROR = 'start-error',
+  EMIT_PLAYER_TURN = 'player-turn',
+  EMIT_PLAYER_SELECTED_CARDS = 'player-selected-cards',
+  EMIT_PLAYER_DISCONNECTED = 'player-disconnected',
+  EMIT_CARDS_SELECTED_ERROR = 'cards-selected-error',
+  EMIT_ROOMS_UPDATED = 'rooms-updated',
+  EMIT_ROOM_CONFIG = 'room-config',
+  EMIT_GAME_STATE = 'game-state',
+  EMIT_GAME_ENDED = 'game-ended',
+  EMIT_GAME_RESET = 'game-reset',
+}

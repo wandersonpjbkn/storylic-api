@@ -6,16 +6,16 @@ import { Server } from 'socket.io'
 import cors from 'cors'
 import helmet from 'helmet'
 
-import { joinGameHandler } from './handlers/joinGame.js'
-import { configGameHandler } from './handlers/configGame.js'
-import { startGameHandler } from './handlers/startGame.js'
-import { finishStorytellingHandler } from './handlers/finishStorytelling.js'
-import { cardsSelectedHandler } from './handlers/cardsSelected.js'
-import { resetGameHandler } from './handlers/resetGame.js'
-import { leaveGameHandler } from './handlers/leaveGame.js'
-import { disconnectHandler } from './handlers/disconnect.js'
-import { getRoomsHandler } from './handlers/getRooms.js'
-import { rejoinGameHandler } from './handlers/rejoinGame.js'
+import { joinGameHandler } from '@/handlers/joinGame.js'
+import { configGameHandler } from '@/handlers/configGame.js'
+import { startGameHandler } from '@/handlers/startGame.js'
+import { finishStorytellingHandler } from '@/handlers/finishStorytelling.js'
+import { cardsSelectedHandler } from '@/handlers/cardsSelected.js'
+import { resetGameHandler } from '@/handlers/resetGame.js'
+import { leaveGameHandler } from '@/handlers/leaveGame.js'
+import { disconnectHandler } from '@/handlers/disconnect.js'
+import { getRoomsHandler } from '@/handlers/getRooms.js'
+import { rejoinGameHandler } from '@/handlers/rejoinGame.js'
 
 const CORS_ORIGIN = process.env.CORS_ORIGIN
 if (!CORS_ORIGIN && process.env.NODE_ENV === 'production') {
@@ -29,7 +29,6 @@ const allowedOrigins = CORS_ORIGIN
 
 const app = express()
 
-// Headers de segurança HTTP
 app.use(
   helmet({
     contentSecurityPolicy: false,

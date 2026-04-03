@@ -1,9 +1,9 @@
 import type { Server, Socket } from 'socket.io'
 
-import type { LeaveGamePayload } from '../types/index.js'
-import { getGame, getPlayersArray, deleteGame, getRoomsSnapshot } from '../utils/games.js'
-import { isRateLimited } from '../utils/rateLimiter.js'
-import { validateGameId } from '../utils/validate.js'
+import type { LeaveGamePayload } from '@/types/index.js'
+import { getGame, getPlayersArray, deleteGame, getRoomsSnapshot } from '@/utils/games.js'
+import { isRateLimited } from '@/utils/rateLimiter.js'
+import { validateGameId } from '@/utils/validate.js'
 
 export const leaveGameHandler = (io: Server, socket: Socket) => {
   socket.on('leave-game', ({ gameId }: LeaveGamePayload) => {

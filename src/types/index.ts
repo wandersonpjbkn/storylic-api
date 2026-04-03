@@ -75,6 +75,6 @@ export interface EventRecord {
 }
 
 export interface RateLimitOptions {
-  maxRequests: number // máximo de chamadas permitidas na janela
-  windowMs: number // tamanho da janela em ms
+  maxRequests: number
+  windowMs: number
 }

@@ -1,9 +1,3 @@
-/**
- * Validação centralizada de payloads de socket.
- * Todas as funções retornam null se válido, ou uma string de erro se inválido.
- * Nunca lança exceção — o handler decide o que fazer com o erro.
- */
-
 const MAX_GAME_ID_LENGTH = 32
 const MAX_PLAYER_NAME_LENGTH = 24
 const MIN_TIMER = 5
@@ -12,8 +6,7 @@ const MAX_TIMER_STORY = 300
 const MAX_TURNS = 20
 const MIN_TURNS = 1
 
-// Apenas alfanuméricos, hífens e underscores — sem path traversal, SQL etc.
-const SAFE_ID_REGEX = /^[a-zA-Z0-9_-]+$/
+const SAFE_ID_REGEX = /^[a-z0-9_-]+$/
 
 const isString = (v: unknown): v is string => typeof v === 'string'
 const isInteger = (v: unknown): v is number =>
