@@ -1,21 +1,21 @@
 import 'dotenv/config'
 
-import express from 'express'
 import { createServer } from 'http'
-import { Server } from 'socket.io'
 import cors from 'cors'
+import express from 'express'
 import helmet from 'helmet'
+import { Server } from 'socket.io'
 
-import { joinGameHandler } from '@/handlers/joinGame.js'
-import { configGameHandler } from '@/handlers/configGame.js'
-import { startGameHandler } from '@/handlers/startGame.js'
-import { finishStorytellingHandler } from '@/handlers/finishStorytelling.js'
 import { cardsSelectedHandler } from '@/handlers/cardsSelected.js'
-import { resetGameHandler } from '@/handlers/resetGame.js'
-import { leaveGameHandler } from '@/handlers/leaveGame.js'
+import { configGameHandler } from '@/handlers/configGame.js'
 import { disconnectHandler } from '@/handlers/disconnect.js'
+import { finishStorytellingHandler } from '@/handlers/finishStorytelling.js'
 import { getRoomsHandler } from '@/handlers/getRooms.js'
+import { joinGameHandler } from '@/handlers/joinGame.js'
+import { leaveGameHandler } from '@/handlers/leaveGame.js'
 import { rejoinGameHandler } from '@/handlers/rejoinGame.js'
+import { resetGameHandler } from '@/handlers/resetGame.js'
+import { startGameHandler } from '@/handlers/startGame.js'
 
 const CORS_ORIGIN = process.env.CORS_ORIGIN
 if (!CORS_ORIGIN && process.env.NODE_ENV === 'production') {

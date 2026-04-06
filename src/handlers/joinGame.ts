@@ -1,3 +1,5 @@
+import type { Server, Socket } from 'socket.io'
+import type { JoinGamePayload } from '@/types/index.js'
 import {
   games,
   createGame,
@@ -6,13 +8,11 @@ import {
   getRoomsSnapshot,
   canJoinGame,
 } from '@/utils/games.js'
-import { generateToken } from '@/utils/tokens.js'
 import { isRateLimited } from '@/utils/rateLimiter.js'
-import { validateGameId, validatePlayerName } from '@/utils/validate.js'
 import { SocketEvents } from '@/utils/socket.js'
+import { generateToken } from '@/utils/tokens.js'
+import { validateGameId, validatePlayerName } from '@/utils/validate.js'
 
-import type { Server, Socket } from 'socket.io'
-import type { JoinGamePayload } from '@/types/index.js'
 
 export const joinGameHandler = (io: Server, socket: Socket) => {
   socket.on(SocketEvents.ON_JOIN_GAME, ({ gameId, playerName }: JoinGamePayload) => {

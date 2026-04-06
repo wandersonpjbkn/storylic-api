@@ -1,4 +1,5 @@
 import type { EventRecord, RateLimitOptions } from '@/types/index.ts'
+import { SocketEvents } from '@/utils/socket.js'
 
 // socketId → eventName → timestamps
 const store = new Map<string, Map<string, EventRecord>>()
@@ -8,15 +9,15 @@ export const clearSocket = (socketId: string): void => {
 }
 
 const LIMITS: Record<string, RateLimitOptions> = {
-  'join-game': { maxRequests: 5, windowMs: 10_000 }, // 5 per 10s
-  'config-game': { maxRequests: 10, windowMs: 10_000 }, // 10 per 10s (sliders)
-  'start-game': { maxRequests: 3, windowMs: 10_000 },
-  'finish-storytelling': { maxRequests: 5, windowMs: 5_000 },
-  'cards-selected': { maxRequests: 10, windowMs: 5_000 },
-  'reset-game': { maxRequests: 3, windowMs: 10_000 },
-  'leave-game': { maxRequests: 5, windowMs: 10_000 },
-  'rejoin-game': { maxRequests: 5, windowMs: 10_000 },
-  'get-rooms': { maxRequests: 10, windowMs: 5_000 },
+  [SocketEvents.ON_JOIN_GAME]: { maxRequests: 5, windowMs: 10_000 }, // 5 per 10s
+  [SocketEvents.ON_CONFIG_GAME]: { maxRequests: 10, windowMs: 10_000 }, // 10 per 10s (sliders)
+  [SocketEvents.ON_START_GAME]: { maxRequests: 3, windowMs: 10_000 },
+  [SocketEvents.ON_FINISH_STORYTELLING]: { maxRequests: 5, windowMs: 5_000 },
+  [SocketEvents.ON_CARDS_SELECTED]: { maxRequests: 10, windowMs: 5_000 },
+  [SocketEvents.ON_RESET_GAME]: { maxRequests: 3, windowMs: 10_000 },
+  [SocketEvents.ON_LEAVE_GAME]: { maxRequests: 5, windowMs: 10_000 },
+  [SocketEvents.ON_REJOIN_GAME]: { maxRequests: 5, windowMs: 10_000 },
+  [SocketEvents.ON_GET_ROOMS]: { maxRequests: 10, windowMs: 5_000 },
 }
 
 export const isRateLimited = (socketId: string, event: string): boolean => {

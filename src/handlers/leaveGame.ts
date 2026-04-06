@@ -3,11 +3,12 @@ import type { Server, Socket } from 'socket.io'
 import type { LeaveGamePayload } from '@/types/index.js'
 import { getGame, getPlayersArray, deleteGame, getRoomsSnapshot } from '@/utils/games.js'
 import { isRateLimited } from '@/utils/rateLimiter.js'
+import { SocketEvents } from '@/utils/socket.js'
 import { validateGameId } from '@/utils/validate.js'
 
 export const leaveGameHandler = (io: Server, socket: Socket) => {
-  socket.on('leave-game', ({ gameId }: LeaveGamePayload) => {
-    if (isRateLimited(socket.id, 'leave-game')) return
+  socket.on(SocketEvents.ON_LEAVE_GAME, ({ gameId }: LeaveGamePayload) => {
+    if (isRateLimited(socket.id, SocketEvents.ON_LEAVE_GAME)) return
 
     const err = validateGameId(gameId)
     if (err) return
@@ -24,12 +25,12 @@ export const leaveGameHandler = (io: Server, socket: Socket) => {
       deleteGame(gameId)
       console.log(`[leave-game] Sala "${gameId}" removida — sem jogadores`)
     } else {
-      io.to(gameId).emit('game-state', {
+      io.to(gameId).emit(SocketEvents.EMIT_GAME_STATE, {
         currentPlayer: game.currentPlayer,
         players: getPlayersArray(game),
       })
     }
 
-    io.emit('rooms-updated', getRoomsSnapshot())
+    io.emit(SocketEvents.EMIT_ROOMS_UPDATED, getRoomsSnapshot())
   })
 }

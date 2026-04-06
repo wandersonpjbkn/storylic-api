@@ -3,11 +3,12 @@ import type { Server, Socket } from 'socket.io'
 import type { StartGamePayload } from '@/types/index.js'
 import { getGame, getPlayersArray, getRoomsSnapshot } from '@/utils/games.js'
 import { isRateLimited } from '@/utils/rateLimiter.js'
+import { SocketEvents } from '@/utils/socket.js'
 import { validateGameId } from '@/utils/validate.js'
 
 export const startGameHandler = (io: Server, socket: Socket) => {
-  socket.on('start-game', ({ gameId, numPlayers }: StartGamePayload) => {
-    if (isRateLimited(socket.id, 'start-game')) return
+  socket.on(SocketEvents.ON_START_GAME, ({ gameId, numPlayers }: StartGamePayload) => {
+    if (isRateLimited(socket.id, SocketEvents.ON_START_GAME)) return
 
     const err = validateGameId(gameId)
     if (err) return
@@ -40,11 +41,11 @@ export const startGameHandler = (io: Server, socket: Socket) => {
 
     console.log(`[start-game] "${gameId}" — ${game.turns} turnos, ${numPlayers} jogadores`)
 
-    io.to(gameId).emit('player-turn', {
+    io.to(gameId).emit(SocketEvents.EMIT_PLAYER_TURN, {
       currentPlayer: game.currentPlayer,
       currentTurn: 1,
     })
 
-    io.emit('rooms-updated', getRoomsSnapshot())
+    io.emit(SocketEvents.EMIT_ROOMS_UPDATED, getRoomsSnapshot())
   })
 }

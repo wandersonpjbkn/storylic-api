@@ -3,8 +3,8 @@ import type { FinishStorytellingPayload } from '@/types/index.js'
 
 import { getGame, getPlayersArray, getRoomsSnapshot } from '@/utils/games.js'
 import { isRateLimited } from '@/utils/rateLimiter.js'
-import { validateGameId } from '@/utils/validate.js'
 import { SocketEvents } from '@/utils/socket.js'
+import { validateGameId } from '@/utils/validate.js'
 
 export const finishStorytellingHandler = (io: Server, socket: Socket) => {
   socket.on(

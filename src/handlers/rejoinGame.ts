@@ -2,34 +2,35 @@ import type { Server, Socket } from 'socket.io'
 
 import type { RejoinGamePayload } from '@/types/index.js'
 import { getGame, getPlayersArray, getOnlinePlayers, getRoomsSnapshot } from '@/utils/games.js'
-import { generateToken, tokensAreEqual } from '@/utils/tokens.js'
 import { isRateLimited } from '@/utils/rateLimiter.js'
+import { SocketEvents } from '@/utils/socket.js'
+import { generateToken, tokensAreEqual } from '@/utils/tokens.js'
 import { validateGameId, validateToken } from '@/utils/validate.js'
 
 export const RESERVATION_TTL_MS = 60_000
 
 export const rejoinGameHandler = (io: Server, socket: Socket) => {
-  socket.on('rejoin-game', ({ gameId, token }: RejoinGamePayload) => {
-    if (isRateLimited(socket.id, 'rejoin-game')) {
-      socket.emit('rejoin-error', { reason: 'Muitas tentativas de reconexão.' })
+  socket.on(SocketEvents.ON_REJOIN_GAME, ({ gameId, token }: RejoinGamePayload) => {
+    if (isRateLimited(socket.id, SocketEvents.ON_REJOIN_GAME)) {
+      socket.emit(SocketEvents.EMIT_REJOIN_ERROR, { reason: 'Muitas tentativas de reconexão.' })
       return
     }
 
     const gameIdErr = validateGameId(gameId)
     if (gameIdErr) {
-      socket.emit('rejoin-error', { reason: gameIdErr })
+      socket.emit(SocketEvents.EMIT_REJOIN_ERROR, { reason: gameIdErr })
       return
     }
 
     const tokenErr = validateToken(token)
     if (tokenErr) {
-      socket.emit('rejoin-error', { reason: 'Sessão inválida.' })
+      socket.emit(SocketEvents.EMIT_REJOIN_ERROR, { reason: 'Sessão inválida.' })
       return
     }
 
     const game = getGame(gameId)
     if (!game) {
-      socket.emit('rejoin-error', { reason: 'Sala não encontrada ou já encerrada' })
+      socket.emit(SocketEvents.EMIT_REJOIN_ERROR, { reason: 'Sala não encontrada ou já encerrada' })
       return
     }
 
@@ -37,12 +38,12 @@ export const rejoinGameHandler = (io: Server, socket: Socket) => {
     const existingPlayer = playersArray.find((p) => tokensAreEqual(p.token, token))
 
     if (!existingPlayer) {
-      socket.emit('rejoin-error', { reason: 'Token inválido ou vaga expirada' })
+      socket.emit(SocketEvents.EMIT_REJOIN_ERROR, { reason: 'Token inválido ou vaga expirada' })
       return
     }
 
     if (existingPlayer.disconnectedAt === undefined && existingPlayer.id !== socket.id) {
-      socket.emit('rejoin-error', { reason: 'Reconexão já processada por outra aba' })
+      socket.emit(SocketEvents.EMIT_REJOIN_ERROR, { reason: 'Reconexão já processada por outra aba' })
       return
     }
 
@@ -75,7 +76,7 @@ export const rejoinGameHandler = (io: Server, socket: Socket) => {
       `[rejoin-game] "${existingPlayer.name}" reconectou em "${gameId}" (${oldSocketId.slice(0, 8)} → ${socket.id.slice(0, 8)})`,
     )
 
-    socket.emit('rejoin-ack', {
+    socket.emit(SocketEvents.EMIT_REJOIN_ACK, {
       gameState: game.gameState,
       currentPlayer: game.currentPlayer,
       currentTurn: game.currentTurn,
@@ -88,12 +89,12 @@ export const rejoinGameHandler = (io: Server, socket: Socket) => {
       timerStory: game.timerStory,
     })
 
-    socket.to(gameId).emit('player-reconnected', {
+    socket.to(gameId).emit(SocketEvents.EMIT_PLAYER_RECONNECTED, {
       playerId: socket.id,
       playerName: existingPlayer.name,
       players: getOnlinePlayers(game),
     })
 
-    io.emit('rooms-updated', getRoomsSnapshot())
+    io.emit(SocketEvents.EMIT_ROOMS_UPDATED, getRoomsSnapshot())
   })
 }

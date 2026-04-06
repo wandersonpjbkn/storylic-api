@@ -1,3 +1,4 @@
+import type { Server, Socket } from 'socket.io'
 import { RESERVATION_TTL_MS } from '@/handlers/rejoinGame.js'
 import {
   games,
@@ -9,7 +10,6 @@ import {
 import { clearSocket } from '@/utils/rateLimiter.js'
 import { SocketEvents } from '@/utils/socket.js'
 
-import type { Server, Socket } from 'socket.io'
 
 export const disconnectHandler = (io: Server, socket: Socket) => {
   socket.on(SocketEvents.ON_DISCONNECT, () => {
