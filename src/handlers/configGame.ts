@@ -1,8 +1,9 @@
 import type { Server, Socket } from 'socket.io'
-import type { ConfigGamePayload } from '@/types/index.js'
+import type { ConfigGamePayload } from '@/types/index.ts'
+
+import { SocketEvents } from '@/constants/socketEvents.js'
 import { getGame } from '@/utils/games.js'
 import { isRateLimited } from '@/utils/rateLimiter.js'
-import { SocketEvents } from '@/constants/socketEvents.js'
 import {
   validateGameId,
   validateTimerTurn,
@@ -12,9 +13,9 @@ import {
 
 export const configGameHandler = (io: Server, socket: Socket) => {
   socket.on(
-    SocketEvents.ON_CONFIG_GAME,
+    SocketEvents.EMIT_CONFIG_GAME,
     ({ gameId, timerTurn, timerStory, turns }: ConfigGamePayload) => {
-      if (isRateLimited(socket.id, SocketEvents.ON_CONFIG_GAME)) return
+      if (isRateLimited(socket.id, SocketEvents.EMIT_CONFIG_GAME)) return
 
       const err =
         validateGameId(gameId) ??
@@ -22,7 +23,7 @@ export const configGameHandler = (io: Server, socket: Socket) => {
         validateTimerStory(timerStory) ??
         validateTurns(turns)
       if (err) {
-        socket.emit(SocketEvents.EMIT_CONFIG_ERROR, { reason: err })
+        socket.emit(SocketEvents.ON_CONFIG_ERROR, { reason: err })
         return
       }
 
@@ -32,7 +33,6 @@ export const configGameHandler = (io: Server, socket: Socket) => {
         return
       }
 
-      // Apenas jogadores da sala podem configurá-la
       if (!game.players.has(socket.id)) {
         console.warn(
           `[config-game] Socket ${socket.id.slice(0, 8)} não pertence à sala "${gameId}"`,
@@ -49,7 +49,7 @@ export const configGameHandler = (io: Server, socket: Socket) => {
         `[config-game] "${gameId}" — cards:${timerTurn}s narração:${timerStory}s turnos:${turns}`,
       )
 
-      io.to(gameId).emit(SocketEvents.EMIT_ROOM_CONFIG, { timerTurn, timerStory, turns })
+      io.to(gameId).emit(SocketEvents.ON_ROOM_CONFIG, { timerTurn, timerStory, turns })
     },
   )
 }

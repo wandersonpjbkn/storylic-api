@@ -1,14 +1,14 @@
 import type { Server, Socket } from 'socket.io'
+import type { ResetGamePayload } from '@/types/index.ts'
 
-import type { ResetGamePayload } from '@/types/index.js'
+import { SocketEvents } from '@/constants/socketEvents.js'
 import { getGame, getPlayersArray, getSafePlayersArray, getRoomsSnapshot } from '@/utils/games.js'
 import { isRateLimited } from '@/utils/rateLimiter.js'
-import { SocketEvents } from '@/constants/socketEvents.js'
 import { validateGameId } from '@/utils/validate.js'
 
 export const resetGameHandler = (io: Server, socket: Socket) => {
-  socket.on(SocketEvents.ON_RESET_GAME, ({ gameId }: ResetGamePayload) => {
-    if (isRateLimited(socket.id, SocketEvents.ON_RESET_GAME)) return
+  socket.on(SocketEvents.EMIT_RESET_GAME, ({ gameId }: ResetGamePayload) => {
+    if (isRateLimited(socket.id, SocketEvents.EMIT_RESET_GAME)) return
 
     const err = validateGameId(gameId)
     if (err) return
@@ -36,7 +36,7 @@ export const resetGameHandler = (io: Server, socket: Socket) => {
     const firstPlayer = getPlayersArray(game)[0]
     const creatorId = firstPlayer?.id ?? null
 
-    io.to(gameId).emit(SocketEvents.EMIT_GAME_RESET, {
+    io.to(gameId).emit(SocketEvents.ON_GAME_RESET, {
       reason: 'new-game',
       creatorId,
       timerTurn: game.timerTurn,
@@ -44,11 +44,11 @@ export const resetGameHandler = (io: Server, socket: Socket) => {
       turns: game.turns,
     })
 
-    io.to(gameId).emit(SocketEvents.EMIT_GAME_STATE, {
+    io.to(gameId).emit(SocketEvents.ON_GAME_STATE, {
       currentPlayer: game.currentPlayer,
       players: getSafePlayersArray(game),
     })
 
-    io.emit(SocketEvents.EMIT_ROOMS_UPDATED, getRoomsSnapshot())
+    io.emit(SocketEvents.ON_ROOMS_UPDATED, getRoomsSnapshot())
   })
 }

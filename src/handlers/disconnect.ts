@@ -1,4 +1,6 @@
 import type { Server, Socket } from 'socket.io'
+
+import { SocketEvents } from '@/constants/socketEvents.js'
 import { RESERVATION_TTL_MS } from '@/handlers/rejoinGame.js'
 import {
   games,
@@ -9,13 +11,11 @@ import {
   getRoomsSnapshot,
 } from '@/utils/games.js'
 import { clearSocket } from '@/utils/rateLimiter.js'
-import { SocketEvents } from '@/constants/socketEvents.js'
 
 export const disconnectHandler = (io: Server, socket: Socket) => {
   socket.on(SocketEvents.ON_DISCONNECT, () => {
     console.log(`[disconnect] ${socket.id.slice(0, 8)} desconectou`)
 
-    // Limpa entradas de rate limit para este socket
     clearSocket(socket.id)
 
     games.forEach((game, gameId) => {
@@ -26,7 +26,7 @@ export const disconnectHandler = (io: Server, socket: Socket) => {
 
       player.disconnectedAt = Date.now()
 
-      io.to(gameId).emit(SocketEvents.EMIT_PLAYER_DISCONNECTED, {
+      io.to(gameId).emit(SocketEvents.ON_PLAYER_DISCONNECTED, {
         playerId: socket.id,
         playerName: player.name,
         reservedFor: RESERVATION_TTL_MS,
@@ -45,7 +45,7 @@ export const disconnectHandler = (io: Server, socket: Socket) => {
 
         if (game.players.size === 0) {
           console.log(`[disconnect] Sala "${gameId}" removida — sem jogadores`)
-          io.to(gameId).emit(SocketEvents.EMIT_GAME_RESET)
+          io.to(gameId).emit(SocketEvents.ON_GAME_RESET)
           deleteGame(gameId)
         } else {
           const isGameActive =
@@ -58,9 +58,9 @@ export const disconnectHandler = (io: Server, socket: Socket) => {
             const onlinePlayers = getOnlinePlayers(game)
 
             if (onlinePlayers.length === 0) {
-              io.to(gameId).emit(SocketEvents.EMIT_GAME_RESET)
+              io.to(gameId).emit(SocketEvents.ON_GAME_RESET)
               deleteGame(gameId)
-              io.emit(SocketEvents.EMIT_ROOMS_UPDATED, getRoomsSnapshot())
+              io.emit(SocketEvents.ON_ROOMS_UPDATED, getRoomsSnapshot())
               return
             }
 
@@ -74,22 +74,22 @@ export const disconnectHandler = (io: Server, socket: Socket) => {
             game.currentPlayer = nextPlayer.id
             game.turnStartedAt = Date.now()
 
-            io.to(gameId).emit(SocketEvents.EMIT_PLAYER_TURN, {
+            io.to(gameId).emit(SocketEvents.ON_PLAYER_TURN, {
               currentPlayer: game.currentPlayer,
               currentTurn: game.currentTurn,
             })
           }
 
-          io.to(gameId).emit(SocketEvents.EMIT_GAME_STATE, {
+          io.to(gameId).emit(SocketEvents.ON_GAME_STATE, {
             currentPlayer: game.currentPlayer,
             players: getSafeOnlinePlayers(game),
           })
         }
 
-        io.emit(SocketEvents.EMIT_ROOMS_UPDATED, getRoomsSnapshot())
+        io.emit(SocketEvents.ON_ROOMS_UPDATED, getRoomsSnapshot())
       }, RESERVATION_TTL_MS)
     })
 
-    io.emit(SocketEvents.EMIT_ROOMS_UPDATED, getRoomsSnapshot())
+    io.emit(SocketEvents.ON_ROOMS_UPDATED, getRoomsSnapshot())
   })
 }

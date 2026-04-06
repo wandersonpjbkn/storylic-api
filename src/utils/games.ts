@@ -1,4 +1,5 @@
-import type { Game } from '@/types/index.js'
+import type { Game } from '@/types/index.ts'
+
 import { SocketEvents } from '@/constants/socketEvents.js'
 
 export const games = new Map<string, Game>()

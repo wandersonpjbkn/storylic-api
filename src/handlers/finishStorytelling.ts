@@ -1,16 +1,16 @@
 import type { Server, Socket } from 'socket.io'
-import type { FinishStorytellingPayload } from '@/types/index.js'
+import type { FinishStorytellingPayload } from '@/types/index.ts'
 
+import { SocketEvents } from '@/constants/socketEvents.js'
 import { getGame, getPlayersArray, getRoomsSnapshot } from '@/utils/games.js'
 import { isRateLimited } from '@/utils/rateLimiter.js'
-import { SocketEvents } from '@/constants/socketEvents.js'
 import { validateGameId } from '@/utils/validate.js'
 
 export const finishStorytellingHandler = (io: Server, socket: Socket) => {
   socket.on(
-    SocketEvents.ON_FINISH_STORYTELLING,
+    SocketEvents.EMIT_FINISH_STORYTELLING,
     ({ gameId, currentPlayer }: FinishStorytellingPayload) => {
-      if (isRateLimited(socket.id, SocketEvents.ON_FINISH_STORYTELLING)) return
+      if (isRateLimited(socket.id, SocketEvents.EMIT_FINISH_STORYTELLING)) return
 
       const err = validateGameId(gameId)
       if (err) return
@@ -21,7 +21,6 @@ export const finishStorytellingHandler = (io: Server, socket: Socket) => {
         return
       }
 
-      // Apenas o jogador cujo turno é atual pode finalizar a narração
       if (game.currentPlayer !== socket.id) {
         console.warn(
           `[finish-storytelling] Socket ${socket.id.slice(0, 8)} não é o jogador atual em "${gameId}"`,
@@ -51,7 +50,7 @@ export const finishStorytellingHandler = (io: Server, socket: Socket) => {
             `[finish-storytelling] Turno ${game.currentTurn}/${game.turns} — primeiro jogador`,
           )
 
-          io.to(gameId).emit(SocketEvents.EMIT_PLAYER_TURN, {
+          io.to(gameId).emit(SocketEvents.ON_PLAYER_TURN, {
             currentPlayer: game.currentPlayer,
             currentTurn: game.currentTurn,
           })
@@ -61,8 +60,8 @@ export const finishStorytellingHandler = (io: Server, socket: Socket) => {
 
           console.log(`[finish-storytelling] Sala "${gameId}" finalizada`)
 
-          io.to(gameId).emit(SocketEvents.EMIT_GAME_ENDED)
-          io.emit(SocketEvents.EMIT_ROOMS_UPDATED, getRoomsSnapshot())
+          io.to(gameId).emit(SocketEvents.ON_GAME_ENDED)
+          io.emit(SocketEvents.ON_ROOMS_UPDATED, getRoomsSnapshot())
         }
       } else {
         game.currentPlayer = playersArray[nextIndex].id
@@ -72,7 +71,7 @@ export const finishStorytellingHandler = (io: Server, socket: Socket) => {
           `[finish-storytelling] Próximo: "${playersArray[nextIndex].name}" — turno ${game.currentTurn}`,
         )
 
-        io.to(gameId).emit(SocketEvents.EMIT_PLAYER_TURN, {
+        io.to(gameId).emit(SocketEvents.ON_PLAYER_TURN, {
           currentPlayer: game.currentPlayer,
           currentTurn: game.currentTurn,
         })
