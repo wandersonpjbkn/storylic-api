@@ -1,9 +1,9 @@
 import type { Server, Socket } from 'socket.io'
 
 import type { LeaveGamePayload } from '@/types/index.js'
-import { getGame, getPlayersArray, deleteGame, getRoomsSnapshot } from '@/utils/games.js'
+import { getGame, getSafePlayersArray, deleteGame, getRoomsSnapshot } from '@/utils/games.js'
 import { isRateLimited } from '@/utils/rateLimiter.js'
-import { SocketEvents } from '@/utils/socket.js'
+import { SocketEvents } from '@/constants/socketEvents.js'
 import { validateGameId } from '@/utils/validate.js'
 
 export const leaveGameHandler = (io: Server, socket: Socket) => {
@@ -27,7 +27,7 @@ export const leaveGameHandler = (io: Server, socket: Socket) => {
     } else {
       io.to(gameId).emit(SocketEvents.EMIT_GAME_STATE, {
         currentPlayer: game.currentPlayer,
-        players: getPlayersArray(game),
+        players: getSafePlayersArray(game),
       })
     }
 

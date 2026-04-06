@@ -1,9 +1,9 @@
 import type { Server, Socket } from 'socket.io'
 
 import type { ResetGamePayload } from '@/types/index.js'
-import { getGame, getPlayersArray, getRoomsSnapshot } from '@/utils/games.js'
+import { getGame, getPlayersArray, getSafePlayersArray, getRoomsSnapshot } from '@/utils/games.js'
 import { isRateLimited } from '@/utils/rateLimiter.js'
-import { SocketEvents } from '@/utils/socket.js'
+import { SocketEvents } from '@/constants/socketEvents.js'
 import { validateGameId } from '@/utils/validate.js'
 
 export const resetGameHandler = (io: Server, socket: Socket) => {
@@ -19,7 +19,7 @@ export const resetGameHandler = (io: Server, socket: Socket) => {
       return
     }
 
-    // Apenas jogadores da sala podem resetar
+    // only players in the game can reset
     if (!game.players.has(socket.id)) {
       console.warn(`[reset-game] Socket ${socket.id.slice(0, 8)} não pertence à sala "${gameId}"`)
       return
@@ -27,7 +27,7 @@ export const resetGameHandler = (io: Server, socket: Socket) => {
 
     game.currentPlayer = null
     game.currentTurn = 1
-    game.gameState = 'lobby'
+    game.gameState = SocketEvents.STATE_LOBBY
     game.turnStartedAt = null
     game.turnDurationMs = game.timerTurn * 1000
 
@@ -46,7 +46,7 @@ export const resetGameHandler = (io: Server, socket: Socket) => {
 
     io.to(gameId).emit(SocketEvents.EMIT_GAME_STATE, {
       currentPlayer: game.currentPlayer,
-      players: getPlayersArray(game),
+      players: getSafePlayersArray(game),
     })
 
     io.emit(SocketEvents.EMIT_ROOMS_UPDATED, getRoomsSnapshot())

@@ -2,14 +2,13 @@ import type { Server, Socket } from 'socket.io'
 import type { ConfigGamePayload } from '@/types/index.js'
 import { getGame } from '@/utils/games.js'
 import { isRateLimited } from '@/utils/rateLimiter.js'
-import { SocketEvents } from '@/utils/socket.js'
+import { SocketEvents } from '@/constants/socketEvents.js'
 import {
   validateGameId,
   validateTimerTurn,
   validateTimerStory,
   validateTurns,
 } from '@/utils/validate.js'
-
 
 export const configGameHandler = (io: Server, socket: Socket) => {
   socket.on(

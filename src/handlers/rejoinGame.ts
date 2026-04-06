@@ -1,9 +1,9 @@
 import type { Server, Socket } from 'socket.io'
 
 import type { RejoinGamePayload } from '@/types/index.js'
-import { getGame, getPlayersArray, getOnlinePlayers, getRoomsSnapshot } from '@/utils/games.js'
+import { getGame, getPlayersArray, getSafeOnlinePlayers, getRoomsSnapshot } from '@/utils/games.js'
 import { isRateLimited } from '@/utils/rateLimiter.js'
-import { SocketEvents } from '@/utils/socket.js'
+import { SocketEvents } from '@/constants/socketEvents.js'
 import { generateToken, tokensAreEqual } from '@/utils/tokens.js'
 import { validateGameId, validateToken } from '@/utils/validate.js'
 
@@ -43,7 +43,9 @@ export const rejoinGameHandler = (io: Server, socket: Socket) => {
     }
 
     if (existingPlayer.disconnectedAt === undefined && existingPlayer.id !== socket.id) {
-      socket.emit(SocketEvents.EMIT_REJOIN_ERROR, { reason: 'Reconexão já processada por outra aba' })
+      socket.emit(SocketEvents.EMIT_REJOIN_ERROR, {
+        reason: 'Reconexão já processada por outra aba',
+      })
       return
     }
 
@@ -81,7 +83,7 @@ export const rejoinGameHandler = (io: Server, socket: Socket) => {
       currentPlayer: game.currentPlayer,
       currentTurn: game.currentTurn,
       turns: game.turns,
-      players: getOnlinePlayers(game),
+      players: getSafeOnlinePlayers(game),
       isMyTurn: game.currentPlayer === socket.id,
       remainingTurnMs,
       newToken,
@@ -92,7 +94,7 @@ export const rejoinGameHandler = (io: Server, socket: Socket) => {
     socket.to(gameId).emit(SocketEvents.EMIT_PLAYER_RECONNECTED, {
       playerId: socket.id,
       playerName: existingPlayer.name,
-      players: getOnlinePlayers(game),
+      players: getSafeOnlinePlayers(game),
     })
 
     io.emit(SocketEvents.EMIT_ROOMS_UPDATED, getRoomsSnapshot())

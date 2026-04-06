@@ -1,5 +1,5 @@
 import type { EventRecord, RateLimitOptions } from '@/types/index.ts'
-import { SocketEvents } from '@/utils/socket.js'
+import { SocketEvents } from '@/constants/socketEvents.js'
 
 // socketId → eventName → timestamps
 const store = new Map<string, Map<string, EventRecord>>()

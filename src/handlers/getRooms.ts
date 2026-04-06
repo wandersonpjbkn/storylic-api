@@ -2,7 +2,7 @@ import type { Server, Socket } from 'socket.io'
 
 import { getRoomsSnapshot } from '@/utils/games.js'
 import { isRateLimited } from '@/utils/rateLimiter.js'
-import { SocketEvents } from '@/utils/socket.js'
+import { SocketEvents } from '@/constants/socketEvents.js'
 
 export const getRoomsHandler = (_io: Server, socket: Socket) => {
   socket.on(SocketEvents.ON_GET_ROOMS, () => {

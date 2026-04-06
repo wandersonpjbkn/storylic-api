@@ -4,15 +4,14 @@ import {
   games,
   createGame,
   getGame,
-  getPlayersArray,
+  getSafePlayersArray,
   getRoomsSnapshot,
   canJoinGame,
 } from '@/utils/games.js'
 import { isRateLimited } from '@/utils/rateLimiter.js'
-import { SocketEvents } from '@/utils/socket.js'
+import { SocketEvents } from '@/constants/socketEvents.js'
 import { generateToken } from '@/utils/tokens.js'
 import { validateGameId, validatePlayerName } from '@/utils/validate.js'
-
 
 export const joinGameHandler = (io: Server, socket: Socket) => {
   socket.on(SocketEvents.ON_JOIN_GAME, ({ gameId, playerName }: JoinGamePayload) => {
@@ -49,6 +48,12 @@ export const joinGameHandler = (io: Server, socket: Socket) => {
 
     const game = getGame(gameId)!
 
+    if (game.gameState !== SocketEvents.STATE_LOBBY) {
+      socket.emit(SocketEvents.EMIT_JOIN_ERROR, { reason: 'Partida já em andamento.' })
+      socket.leave(gameId)
+      return
+    }
+
     if (!canJoinGame(game)) {
       socket.emit(SocketEvents.EMIT_JOIN_ERROR, { reason: 'Sala cheia.' })
       socket.leave(gameId)
@@ -72,7 +77,7 @@ export const joinGameHandler = (io: Server, socket: Socket) => {
 
     io.to(gameId).emit(SocketEvents.EMIT_GAME_STATE, {
       currentPlayer: game.currentPlayer,
-      players: getPlayersArray(game),
+      players: getSafePlayersArray(game),
     })
 
     io.emit(SocketEvents.EMIT_ROOMS_UPDATED, getRoomsSnapshot())

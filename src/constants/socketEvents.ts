@@ -1,4 +1,12 @@
 export enum SocketEvents {
+  // state
+  STATE_SETUP = 'setup',
+  STATE_WAITING = 'waiting',
+  STATE_LOBBY = 'lobby',
+  STATE_PLAYING = 'playing',
+  STATE_STORYTELLING = 'storytelling',
+  STATE_ENDED = 'ended',
+
   // on
   ON_CONFIG_GAME = 'config-game',
   ON_JOIN_GAME = 'join-game',

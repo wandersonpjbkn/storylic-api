@@ -1,4 +1,5 @@
 import type { Game } from '@/types/index.js'
+import { SocketEvents } from '@/constants/socketEvents.js'
 
 export const games = new Map<string, Game>()
 
@@ -14,6 +15,16 @@ export const getOnlinePlayers = (game: Game) => {
   return Array.from(game.players.values()).filter((p) => p.disconnectedAt === undefined)
 }
 
+export const getSafePlayersArray = (game: Game) => {
+  return Array.from(game.players.values()).map(({ id, name }) => ({ id, name }))
+}
+
+export const getSafeOnlinePlayers = (game: Game) => {
+  return Array.from(game.players.values())
+    .filter((p) => p.disconnectedAt === undefined)
+    .map(({ id, name }) => ({ id, name }))
+}
+
 export const createGame = (gameId: string): Game | null => {
   if (games.size >= MAX_ROOMS) return null
 
@@ -22,7 +33,7 @@ export const createGame = (gameId: string): Game | null => {
     currentTurn: 1,
     turns: 3,
     numPlayers: 0,
-    gameState: 'lobby',
+    gameState: SocketEvents.STATE_LOBBY,
     players: new Map(),
     turnStartedAt: null,
     turnDurationMs: 25_000,

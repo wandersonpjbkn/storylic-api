@@ -3,7 +3,7 @@ import type { FinishStorytellingPayload } from '@/types/index.js'
 
 import { getGame, getPlayersArray, getRoomsSnapshot } from '@/utils/games.js'
 import { isRateLimited } from '@/utils/rateLimiter.js'
-import { SocketEvents } from '@/utils/socket.js'
+import { SocketEvents } from '@/constants/socketEvents.js'
 import { validateGameId } from '@/utils/validate.js'
 
 export const finishStorytellingHandler = (io: Server, socket: Socket) => {
@@ -56,7 +56,7 @@ export const finishStorytellingHandler = (io: Server, socket: Socket) => {
             currentTurn: game.currentTurn,
           })
         } else {
-          game.gameState = 'ended'
+          game.gameState = SocketEvents.STATE_ENDED
           game.turnStartedAt = null
 
           console.log(`[finish-storytelling] Sala "${gameId}" finalizada`)

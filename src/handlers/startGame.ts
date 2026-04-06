@@ -3,7 +3,7 @@ import type { Server, Socket } from 'socket.io'
 import type { StartGamePayload } from '@/types/index.js'
 import { getGame, getPlayersArray, getRoomsSnapshot } from '@/utils/games.js'
 import { isRateLimited } from '@/utils/rateLimiter.js'
-import { SocketEvents } from '@/utils/socket.js'
+import { SocketEvents } from '@/constants/socketEvents.js'
 import { validateGameId } from '@/utils/validate.js'
 
 export const startGameHandler = (io: Server, socket: Socket) => {
@@ -35,7 +35,7 @@ export const startGameHandler = (io: Server, socket: Socket) => {
     game.currentPlayer = firstPlayer.id
     game.numPlayers = numPlayers
     game.currentTurn = 1
-    game.gameState = 'playing'
+    game.gameState = SocketEvents.STATE_PLAYING
     game.turnStartedAt = Date.now()
     // turnDurationMs e turns já foram definidos pelo config-game — não sobrescrever
 

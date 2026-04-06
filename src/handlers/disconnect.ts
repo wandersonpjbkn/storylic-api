@@ -4,12 +4,12 @@ import {
   games,
   getPlayersArray,
   getOnlinePlayers,
+  getSafeOnlinePlayers,
   deleteGame,
   getRoomsSnapshot,
 } from '@/utils/games.js'
 import { clearSocket } from '@/utils/rateLimiter.js'
-import { SocketEvents } from '@/utils/socket.js'
-
+import { SocketEvents } from '@/constants/socketEvents.js'
 
 export const disconnectHandler = (io: Server, socket: Socket) => {
   socket.on(SocketEvents.ON_DISCONNECT, () => {
@@ -49,9 +49,9 @@ export const disconnectHandler = (io: Server, socket: Socket) => {
           deleteGame(gameId)
         } else {
           const isGameActive =
-            game.gameState === 'playing' ||
-            game.gameState === 'storytelling' ||
-            game.gameState === 'waiting'
+            game.gameState === SocketEvents.STATE_PLAYING ||
+            game.gameState === SocketEvents.STATE_STORYTELLING ||
+            game.gameState === SocketEvents.STATE_WAITING
 
           if (isGameActive && game.currentPlayer === socket.id) {
             const allPlayers = getPlayersArray(game)
@@ -82,7 +82,7 @@ export const disconnectHandler = (io: Server, socket: Socket) => {
 
           io.to(gameId).emit(SocketEvents.EMIT_GAME_STATE, {
             currentPlayer: game.currentPlayer,
-            players: getOnlinePlayers(game),
+            players: getSafeOnlinePlayers(game),
           })
         }
 
