@@ -19,6 +19,7 @@ bkp
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
+!.vscode/settings.json
 .idea
 .yarn
 *.suo

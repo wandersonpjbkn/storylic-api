@@ -1,0 +1,87 @@
+import 'dotenv/config'
+
+import { createServer } from 'http'
+import cors from 'cors'
+import express from 'express'
+import helmet from 'helmet'
+import { Server } from 'socket.io'
+
+import { cardsSelectedHandler } from '@/handlers/cardsSelected.js'
+import { configGameHandler } from '@/handlers/configGame.js'
+import { disconnectHandler } from '@/handlers/disconnect.js'
+import { finishStorytellingHandler } from '@/handlers/finishStorytelling.js'
+import { getRoomsHandler } from '@/handlers/getRooms.js'
+import { joinGameHandler } from '@/handlers/joinGame.js'
+import { leaveGameHandler } from '@/handlers/leaveGame.js'
+import { rejoinGameHandler } from '@/handlers/rejoinGame.js'
+import { resetGameHandler } from '@/handlers/resetGame.js'
+import { startGameHandler } from '@/handlers/startGame.js'
+
+const CORS_ORIGIN = process.env.CORS_ORIGIN
+if (!CORS_ORIGIN && process.env.NODE_ENV === 'production') {
+  console.error('❌ CORS_ORIGIN não definida em produção. Encerrando.')
+  process.exit(1)
+}
+
+const allowedOrigins = CORS_ORIGIN
+  ? CORS_ORIGIN.split(',').map((o) => o.trim())
+  : ['http://localhost:8080', 'http://localhost:5173']
+
+const app = express()
+
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+  }),
+)
+
+app.use(
+  cors({
+    origin: allowedOrigins,
+    methods: ['GET', 'POST'],
+    credentials: true,
+  }),
+)
+
+app.get('/health', (_req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() })
+})
+
+const httpServer = createServer(app)
+
+const io = new Server(httpServer, {
+  cors: {
+    origin: allowedOrigins,
+    methods: ['GET', 'POST'],
+  },
+  maxHttpBufferSize: 64 * 1024,
+})
+
+io.on('connection', (socket) => {
+  console.log(`[connection] Novo jogador: ${socket.id.slice(0, 8)}`)
+
+  joinGameHandler(io, socket)
+  configGameHandler(io, socket)
+  startGameHandler(io, socket)
+  finishStorytellingHandler(io, socket)
+  cardsSelectedHandler(io, socket)
+  resetGameHandler(io, socket)
+  leaveGameHandler(io, socket)
+  disconnectHandler(io, socket)
+  getRoomsHandler(io, socket)
+  rejoinGameHandler(io, socket)
+})
+
+const PORT = Number(process.env.API_PORT ?? 3000)
+const HOST = process.env.API_LOCALHOST
+
+if (process.env.NODE_ENV === 'development' && HOST) {
+  httpServer.listen(PORT, HOST, () => {
+    console.log(`🚀 Servidor rodando em http://${HOST}:${PORT}`)
+    console.log(`   CORS permitido: ${allowedOrigins.join(', ')}`)
+  })
+} else {
+  httpServer.listen(PORT, () => {
+    console.log(`🚀 Servidor rodando na porta ${PORT}`)
+  })
+}
