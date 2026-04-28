@@ -12,4 +12,4 @@ jobs:
 
     steps:
       - name: Run cURL on Website
-        run: curl -I https://ecos-api.onrender.com
+        run: curl -I https://storylic-api.onrender.com
