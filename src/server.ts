@@ -18,6 +18,8 @@ import { resetGameHandler } from '@/handlers/resetGame.js'
 import { startGameHandler } from '@/handlers/startGame.js'
 
 const CORS_ORIGIN = process.env.CORS_ORIGIN
+const LOCAL_CORS_ORIGIN = process.env.LOCAL_CORS_ORIGIN ?? 'http://localhost:8080'
+
 if (!CORS_ORIGIN && process.env.NODE_ENV === 'production') {
   console.error('❌ CORS_ORIGIN não definida em produção. Encerrando.')
   process.exit(1)
@@ -25,7 +27,7 @@ if (!CORS_ORIGIN && process.env.NODE_ENV === 'production') {
 
 const allowedOrigins = CORS_ORIGIN
   ? CORS_ORIGIN.split(',').map((o) => o.trim())
-  : ['http://localhost:8080', 'http://localhost:5173']
+  : LOCAL_CORS_ORIGIN.split(',').map((o) => o.trim())
 
 const app = express()
 
@@ -34,7 +36,6 @@ app.use(
     contentSecurityPolicy: false,
   }),
 )
-
 app.use(
   cors({
     origin: allowedOrigins,
@@ -77,11 +78,12 @@ const HOST = process.env.API_LOCALHOST
 
 if (process.env.NODE_ENV === 'development' && HOST) {
   httpServer.listen(PORT, HOST, () => {
-    console.log(`🚀 Servidor rodando em http://${HOST}:${PORT}`)
-    console.log(`   CORS permitido: ${allowedOrigins.join(', ')}`)
+    console.log(`🚀 [ storylic-api ] rodando localmente em http://${HOST}:${PORT}`)
+    console.log(`📱 Acesse pelo celular em http://192.168.15.12:${PORT}`)
+    console.log(`🔗 CORS permitido: ${allowedOrigins.join(', ')}`)
   })
 } else {
   httpServer.listen(PORT, () => {
-    console.log(`🚀 Servidor rodando na porta ${PORT}`)
+    console.log(`🚀 [ Servidor Storylic ] rodando na porta ${PORT}`)
   })
 }
