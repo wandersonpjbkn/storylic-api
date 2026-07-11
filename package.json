@@ -3,10 +3,15 @@
   "version": "2.0.0",
   "private": true,
   "type": "module",
+  "resolutions": {
+    "typescript": "~5.7.2"
+  },
   "scripts": {
     "dev": "tsx watch -r tsconfig-paths/register src/server.ts",
-    "build": "tsc && tsc-alias",
+    "build": "tsc -p tsconfig.build.json && tsc-alias",
     "start": "node dist/server.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "lint": "eslint src --fix",
     "ts": "tsc --noEmit"
   },
@@ -25,12 +30,15 @@
     "eslint": "^9.15.0",
     "eslint-import-resolver-typescript": "^4.4.4",
     "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-sonarjs": "^4.1.0",
     "globals": "^15.12.0",
     "jiti": "^2.6.1",
+    "socket.io-client": "^4.8.3",
     "tsc-alias": "^1.8.10",
     "tsconfig-paths": "^4.2.0",
     "tsx": "^4.19.2",
     "typescript": "~5.7.2",
-    "typescript-eslint": "^8.15.0"
+    "typescript-eslint": "^8.15.0",
+    "vitest": "^4.1.10"
   }
 }
