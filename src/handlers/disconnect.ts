@@ -11,6 +11,7 @@ import {
   getRoomsSnapshot,
 } from '@/utils/games.js'
 import { clearSocket } from '@/utils/rateLimiter.js'
+import { armTurnWatchdog } from '@/utils/turns.js'
 
 export const disconnectHandler = (io: Server, socket: Socket) => {
   socket.on(SocketEvents.ON_DISCONNECT, () => {
@@ -73,6 +74,7 @@ export const disconnectHandler = (io: Server, socket: Socket) => {
 
             game.currentPlayer = nextPlayer.id
             game.turnStartedAt = Date.now()
+            armTurnWatchdog(io, gameId, game)
 
             io.to(gameId).emit(SocketEvents.ON_PLAYER_TURN, {
               currentPlayer: game.currentPlayer,

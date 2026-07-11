@@ -1,8 +1,14 @@
 import type { Server, Socket } from 'socket.io'
+import { SocketEvents } from '@/constants/socketEvents.js'
 import type { ResetGamePayload } from '@/types/index.ts'
 
-import { SocketEvents } from '@/constants/socketEvents.js'
-import { getGame, getPlayersArray, getSafePlayersArray, getRoomsSnapshot } from '@/utils/games.js'
+import {
+  clearTurnTimer,
+  getGame,
+  getPlayersArray,
+  getSafePlayersArray,
+  getRoomsSnapshot,
+} from '@/utils/games.js'
 import { isRateLimited } from '@/utils/rateLimiter.js'
 import { validateGameId } from '@/utils/validate.js'
 
@@ -24,6 +30,8 @@ export const resetGameHandler = (io: Server, socket: Socket) => {
       console.warn(`[reset-game] Socket ${socket.id.slice(0, 8)} não pertence à sala "${gameId}"`)
       return
     }
+
+    clearTurnTimer(game)
 
     game.currentPlayer = null
     game.currentTurn = 1

@@ -1,7 +1,7 @@
 import type { Server, Socket } from 'socket.io'
+import { SocketEvents } from '@/constants/socketEvents.js'
 import type { ConfigGamePayload } from '@/types/index.ts'
 
-import { SocketEvents } from '@/constants/socketEvents.js'
 import { getGame } from '@/utils/games.js'
 import { isRateLimited } from '@/utils/rateLimiter.js'
 import {

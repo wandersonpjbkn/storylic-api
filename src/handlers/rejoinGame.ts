@@ -1,13 +1,13 @@
 import type { Server, Socket } from 'socket.io'
+import { SocketEvents } from '@/constants/socketEvents.js'
 import type { RejoinGamePayload } from '@/types/index.ts'
 
-import { SocketEvents } from '@/constants/socketEvents.js'
 import { getGame, getPlayersArray, getSafeOnlinePlayers, getRoomsSnapshot } from '@/utils/games.js'
 import { isRateLimited } from '@/utils/rateLimiter.js'
 import { generateToken, tokensAreEqual } from '@/utils/tokens.js'
 import { validateGameId, validateToken } from '@/utils/validate.js'
 
-export const RESERVATION_TTL_MS = 60_000
+export const RESERVATION_TTL_MS = Number(process.env.RESERVATION_TTL_MS ?? 60_000)
 
 export const rejoinGameHandler = (io: Server, socket: Socket) => {
   socket.on(SocketEvents.EMIT_REJOIN_GAME, ({ gameId, token }: RejoinGamePayload) => {

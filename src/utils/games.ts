@@ -1,6 +1,6 @@
+import { SocketEvents } from '@/constants/socketEvents.js'
 import type { Game } from '@/types/index.ts'
 
-import { SocketEvents } from '@/constants/socketEvents.js'
 
 export const games = new Map<string, Game>()
 
@@ -50,7 +50,16 @@ export const getGame = (gameId: string): Game | undefined => {
   return games.get(gameId)
 }
 
+export const clearTurnTimer = (game: Game): void => {
+  if (game.turnTimer) {
+    clearTimeout(game.turnTimer)
+    game.turnTimer = undefined
+  }
+}
+
 export const deleteGame = (gameId: string): void => {
+  const game = games.get(gameId)
+  if (game) clearTurnTimer(game)
   games.delete(gameId)
 }
 
@@ -75,7 +84,7 @@ const cleanupInactiveRooms = (): void => {
 
     const lastActivity = game.turnStartedAt ?? 0
     if (now - lastActivity > ROOM_TTL_MS) {
-      games.delete(gameId)
+      deleteGame(gameId)
       console.log(`[cleanup] Sala "${gameId}" removida por inatividade`)
     }
   }

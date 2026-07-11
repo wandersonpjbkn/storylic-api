@@ -1,6 +1,8 @@
 import 'dotenv/config'
 
+import { existsSync } from 'fs'
 import { createServer } from 'http'
+import { resolve } from 'path'
 import cors from 'cors'
 import express from 'express'
 import helmet from 'helmet'
@@ -47,6 +49,20 @@ app.use(
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() })
 })
+
+// Modo "clube local" (LAN): se PUBLIC_DIR apontar para o build do frontend,
+// este servidor também o serve — o jogo roda 100% offline num notebook, sem
+// depender da internet nem de outro host. Opt-in: em produção na nuvem, basta
+// não definir PUBLIC_DIR. SPA fallback para o Vue Router.
+const PUBLIC_DIR = process.env.PUBLIC_DIR
+if (PUBLIC_DIR && existsSync(PUBLIC_DIR)) {
+  const dir = resolve(PUBLIC_DIR)
+  app.use(express.static(dir))
+  app.get(/^(?!\/(health|socket\.io)).*/, (_req, res) => {
+    res.sendFile(resolve(dir, 'index.html'))
+  })
+  console.log(`🗂️  Servindo frontend estático de: ${dir}`)
+}
 
 const httpServer = createServer(app)
 

@@ -1,7 +1,7 @@
 import type { Server, Socket } from 'socket.io'
+import { SocketEvents } from '@/constants/socketEvents.js'
 import type { JoinGamePayload } from '@/types/index.ts'
 
-import { SocketEvents } from '@/constants/socketEvents.js'
 import {
   games,
   createGame,
@@ -33,7 +33,9 @@ export const joinGameHandler = (io: Server, socket: Socket) => {
       return
     }
 
-    socket.join(String(gameId).toLocaleLowerCase())
+    // gameId já é validado como minúsculo por validateGameId; usa o mesmo valor
+    // em join/leave/emit para evitar inconsistência de "room" no Socket.io.
+    socket.join(gameId)
 
     const isNewRoom = !games.has(gameId)
     if (isNewRoom) {

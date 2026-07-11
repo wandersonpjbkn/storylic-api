@@ -24,6 +24,7 @@ export interface Game {
   turnDurationMs: number
   timerTurn: number
   timerStory: number
+  turnTimer?: ReturnType<typeof setTimeout>
 }
 
 export interface JoinGamePayload {

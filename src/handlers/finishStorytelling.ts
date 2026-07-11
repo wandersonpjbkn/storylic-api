@@ -1,15 +1,16 @@
 import type { Server, Socket } from 'socket.io'
+import { SocketEvents } from '@/constants/socketEvents.js'
 import type { FinishStorytellingPayload } from '@/types/index.ts'
 
-import { SocketEvents } from '@/constants/socketEvents.js'
-import { getGame, getPlayersArray, getRoomsSnapshot } from '@/utils/games.js'
+import { getGame } from '@/utils/games.js'
 import { isRateLimited } from '@/utils/rateLimiter.js'
+import { advanceTurn } from '@/utils/turns.js'
 import { validateGameId } from '@/utils/validate.js'
 
 export const finishStorytellingHandler = (io: Server, socket: Socket) => {
   socket.on(
     SocketEvents.EMIT_FINISH_STORYTELLING,
-    ({ gameId, currentPlayer }: FinishStorytellingPayload) => {
+    ({ gameId }: FinishStorytellingPayload) => {
       if (isRateLimited(socket.id, SocketEvents.EMIT_FINISH_STORYTELLING)) return
 
       const err = validateGameId(gameId)
@@ -21,6 +22,9 @@ export const finishStorytellingHandler = (io: Server, socket: Socket) => {
         return
       }
 
+      // Só o jogador da vez encerra o próprio turno. Idempotente por natureza:
+      // um segundo emit (ex.: retry após blip de rede) já não bate mais aqui,
+      // pois o currentPlayer avançou.
       if (game.currentPlayer !== socket.id) {
         console.warn(
           `[finish-storytelling] Socket ${socket.id.slice(0, 8)} não é o jogador atual em "${gameId}"`,
@@ -28,54 +32,7 @@ export const finishStorytellingHandler = (io: Server, socket: Socket) => {
         return
       }
 
-      const playersArray = getPlayersArray(game)
-      const currentIndex = playersArray.findIndex(({ id }) => id === currentPlayer)
-
-      if (currentIndex === -1) {
-        console.warn(
-          `[finish-storytelling] Jogador "${currentPlayer.slice(0, 8)}" não encontrado em "${gameId}"`,
-        )
-        return
-      }
-
-      const nextIndex = currentIndex + 1
-
-      if (nextIndex >= playersArray.length) {
-        if (game.currentTurn < game.turns) {
-          game.currentTurn++
-          game.currentPlayer = playersArray[0].id
-          game.turnStartedAt = Date.now()
-
-          console.log(
-            `[finish-storytelling] Turno ${game.currentTurn}/${game.turns} — primeiro jogador`,
-          )
-
-          io.to(gameId).emit(SocketEvents.ON_PLAYER_TURN, {
-            currentPlayer: game.currentPlayer,
-            currentTurn: game.currentTurn,
-          })
-        } else {
-          game.gameState = SocketEvents.STATE_ENDED
-          game.turnStartedAt = null
-
-          console.log(`[finish-storytelling] Sala "${gameId}" finalizada`)
-
-          io.to(gameId).emit(SocketEvents.ON_GAME_ENDED)
-          io.emit(SocketEvents.ON_ROOMS_UPDATED, getRoomsSnapshot())
-        }
-      } else {
-        game.currentPlayer = playersArray[nextIndex].id
-        game.turnStartedAt = Date.now()
-
-        console.log(
-          `[finish-storytelling] Próximo: "${playersArray[nextIndex].name}" — turno ${game.currentTurn}`,
-        )
-
-        io.to(gameId).emit(SocketEvents.ON_PLAYER_TURN, {
-          currentPlayer: game.currentPlayer,
-          currentTurn: game.currentTurn,
-        })
-      }
+      advanceTurn(io, gameId, game)
     },
   )
 }
