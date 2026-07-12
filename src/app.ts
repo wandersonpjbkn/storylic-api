@@ -48,7 +48,7 @@ export const createGameServer = (): GameServer => {
 
   const app = express()
 
-  app.use(helmet({ contentSecurityPolicy: false }))
+  app.use(helmet())
   app.use(
     cors({
       origin: allowedOrigins,
