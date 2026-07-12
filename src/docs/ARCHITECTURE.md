@@ -57,7 +57,9 @@ storytelling são distinções locais do cliente). `start-game` → `playing`;
 
 - **Validação** de todo payload (`utils/validate.ts`): `gameId` minúsculo seguro,
   nome, timers, turnos, formato do token.
-- **Rate limit** por socket e evento (`utils/rateLimiter.ts`).
+- **Rate limit** por socket e evento (`utils/rateLimiter.ts`); e **rate limit
+  HTTP** (`express-rate-limit`) nas rotas de arquivo do modo LAN (teto generoso
+  para o Wi-Fi do clube).
 - **CORS** por origem (obrigatório em produção via `CORS_ORIGIN`).
 - `cards-selected` só é aceito do jogador da vez, com id vindo do servidor.
 

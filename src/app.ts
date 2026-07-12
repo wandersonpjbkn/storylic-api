@@ -3,6 +3,7 @@ import { createServer } from 'http'
 import { resolve } from 'path'
 import cors from 'cors'
 import express from 'express'
+import rateLimit from 'express-rate-limit'
 import helmet from 'helmet'
 import { Server } from 'socket.io'
 
@@ -67,6 +68,18 @@ export const createGameServer = (): GameServer => {
   const PUBLIC_DIR = process.env.PUBLIC_DIR
   if (PUBLIC_DIR && existsSync(PUBLIC_DIR)) {
     const dir = resolve(PUBLIC_DIR)
+
+    // Rate limit HTTP nas rotas de arquivo (evita leitura de disco sem limite).
+    // Janela/teto generosos: ~12 jogadores no mesmo IP (Wi-Fi do clube) carregam
+    // o SPA de uma vez sem tropeçar; ainda barra abuso. Só o socket.io e /health
+    // ficam de fora (registrados antes / fora do Express).
+    const staticLimiter = rateLimit({
+      windowMs: 60_000,
+      limit: 1000,
+      standardHeaders: 'draft-7',
+      legacyHeaders: false,
+    })
+    app.use(staticLimiter)
     app.use(express.static(dir))
     app.get(/^(?!\/(health|socket\.io)).*/, (_req, res) => {
       res.sendFile(resolve(dir, 'index.html'))

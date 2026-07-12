@@ -3,6 +3,15 @@
 Histórico de mudanças concluídas. Os docs em `src/docs/` descrevem só o **estado
 atual**; o que **mudou** e por quê mora aqui.
 
+## 2026-07 — CodeQL: rate limit HTTP no modo LAN
+
+- `express-rate-limit` nas rotas de arquivo servidas quando `PUBLIC_DIR` está
+  ativo (modo LAN), fechando o alerta CodeQL de "missing rate limiting". Janela
+  60s / teto 1000 por IP — generoso para ~12 jogadores no mesmo Wi-Fi. Não afeta
+  socket.io nem `/health`.
+- CSP do helmet segue desativada por decisão documentada (a API é socket/JSON; a
+  política vem do host do frontend) — alerta CodeQL tratado como risco aceito.
+
 ## 2026-07 — Watchdog de turno, modo LAN e testes
 
 ### Resiliência de turno
