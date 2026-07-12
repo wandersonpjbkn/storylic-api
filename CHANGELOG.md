@@ -20,8 +20,11 @@ atual**; o que **mudou** e por quê mora aqui.
   ativo (modo LAN), fechando o alerta CodeQL de "missing rate limiting". Janela
   60s / teto 1000 por IP — generoso para ~12 jogadores no mesmo Wi-Fi. Não afeta
   socket.io nem `/health`.
-- CSP do helmet segue desativada por decisão documentada (a API é socket/JSON; a
-  política vem do host do frontend) — alerta CodeQL tratado como risco aceito.
+- CSP do helmet **habilitada** (`helmet()` com a política padrão) via autofix do
+  CodeQL, fechando o alerta "Insecure configuration of Helmet". ⚠️ No **modo LAN**
+  (servindo o SPA), a CSP padrão `default-src 'self'` bloqueia fontes/GTM/estilos
+  inline do frontend — se usar LAN, é preciso uma CSP compatível para as rotas
+  estáticas (ver `PROJECT_STATE`).
 
 ## 2026-07 — Watchdog de turno, modo LAN e testes
 

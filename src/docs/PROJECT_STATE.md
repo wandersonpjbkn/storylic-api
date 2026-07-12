@@ -19,6 +19,13 @@
 
 ## Pendências / dívidas conhecidas ⏳
 
+- **CSP padrão × modo LAN ⏳:** o `helmet()` (CSP `default-src 'self'`, habilitado
+  pelo autofix do CodeQL) protege a API, mas se `PUBLIC_DIR` servir o SPA, essa CSP
+  **bloqueia** fontes Google/GTM/estilos inline do frontend. Correção natural:
+  aplicar uma CSP compatível (ou desligá-la) só nas rotas estáticas do modo LAN,
+  mantendo a CSP no resto.
+
+
 - **Reordenação no rejoin ⏳ (baixo impacto):** o jogador reconectado é
   re-inserido no fim do `Map` de `players`, o que pode reordenar os turnos
   seguintes. Preservar a ordem de entrada é a melhoria natural.

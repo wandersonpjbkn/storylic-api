@@ -38,11 +38,11 @@
 
 `eslint` (flat config em `eslint.config.js`, ESM) + typescript-eslint +
 `eslint-plugin-sonarjs` + **`eslint-plugin-security`** (`recommended`).
-Relaxamentos **por regra e justificados** (ex.: `sonarjs/content-security-policy`
-— a CSP vem do host do frontend; `security/detect-non-literal-fs-filename` — fs por
-env no modo LAN). `resolutions` de `typescript` deduplica a árvore (destrava o
-SonarJS) e também **fixa versões corrigidas de deps transitivas** (CVEs de `qs`,
-`ws`, `path-to-regexp`, `socket.io-parser`).
+Relaxamentos **por regra e justificados** (ex.: `security/detect-non-literal-fs-filename`
+— fs por env no modo LAN; `security/detect-object-injection` — acesso a mapas de
+config). `resolutions` de `typescript` deduplica a árvore (destrava o SonarJS) e
+também **fixa versões corrigidas de deps transitivas** (CVEs de `qs`, `ws`,
+`path-to-regexp`, `socket.io-parser`).
 
 ## Segurança ✅
 

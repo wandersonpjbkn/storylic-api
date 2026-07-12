@@ -47,10 +47,6 @@ export default defineConfig([
       // res.sendFile no modo LAN) — ver app.ts.
       'security/detect-non-literal-fs-filename': 'off',
 
-      // helmet roda com CSP desativada de propósito (a política vem do host/CDN
-      // do frontend, não desta API de socket) — decisão pré-existente, ver app.ts.
-      'sonarjs/content-security-policy': 'off',
-
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
 
       '@typescript-eslint/explicit-function-return-type': 'off',
