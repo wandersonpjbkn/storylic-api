@@ -3,6 +3,17 @@
 Histórico de mudanças concluídas. Os docs em `src/docs/` descrevem só o **estado
 atual**; o que **mudou** e por quê mora aqui.
 
+## 2026-07 — Suíte de segurança local
+
+- **`yarn security`** (rápido): auditoria de CVEs de deps de produção
+  (`yarn audit --groups dependencies`, gate em ≥ moderate) + `eslint-plugin-security`
+  no `yarn lint`.
+- **`yarn security:deep`** (`scripts/codeql-scan.sh`): CodeQL local — mesmo motor e
+  suite `security-extended` do check do GitHub, na máquina do dev. Sem CI.
+- **CVEs de dependência corrigidos via `resolutions`:** `qs`, `ws`,
+  `path-to-regexp`, `socket.io-parser` → auditoria de produção zerada. Testes de
+  integração (socket.io real) seguem verdes com as versões novas.
+
 ## 2026-07 — CodeQL: rate limit HTTP no modo LAN
 
 - `express-rate-limit` nas rotas de arquivo servidas quando `PUBLIC_DIR` está

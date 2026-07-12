@@ -44,7 +44,28 @@ mora aqui (servidor real), não no cliente.
 - Integração: `beforeEach` sobe `createGameServer()` em porta `0`; `afterEach`
   fecha sockets, limpa o `Map` de jogos e os timers pendentes.
 
+## Segurança (local, sem CI) ✅
+
+Duas camadas que rodam via `yarn`, como os outros gates:
+
+- **`yarn security`** (rápida, segundos): auditoria de **CVEs de dependência de
+  produção** (`yarn audit --groups dependencies`, falha em severidade ≥ moderate)
+  + `yarn lint` com **`eslint-plugin-security`** (anti-padrões de Node —
+  `child_process`, `eval`, regex insegura; `detect-object-injection` e
+  `detect-non-literal-fs-filename` desligados por regra, justificados).
+- **`yarn security:deep`** (profunda): roda o **CodeQL** localmente
+  (`scripts/codeql-scan.sh`) — mesmo motor e suite `security-extended` do check do
+  GitHub. Baixa o bundle na 1ª vez (~500MB, cacheado) e constrói o banco (minutos).
+  É o que reproduz achados de dataflow (ex.: "missing rate limiting") que a camada
+  rápida **não** pega.
+
+> As camadas se complementam: ESLint/SonarJS são baseados em AST; só o CodeQL faz
+> dataflow interprocedural. O CodeQL do GitHub (default setup) segue ativo — o
+> `security:deep` é o espelho local dele.
+
 ## Pendente ⏳
 
 - `configGame`/`getRooms` ainda sem teste unitário dedicado (cobertos
   indiretamente pela integração).
+- `security:deep` (CodeQL) roda na máquina do dev; não foi possível fazer o smoke
+  completo no ambiente da auditoria (o proxy bloqueia o download do bundle — 403).

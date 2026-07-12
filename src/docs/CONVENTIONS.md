@@ -37,6 +37,14 @@
 ## Lint ✅
 
 `eslint` (flat config em `eslint.config.js`, ESM) + typescript-eslint +
-`eslint-plugin-sonarjs` (`recommended`). Relaxamentos **por regra e justificados**
-(ex.: `sonarjs/content-security-policy` — a CSP vem do host do frontend, não desta
-API). `resolutions` de `typescript` deduplica a árvore (destrava o SonarJS).
+`eslint-plugin-sonarjs` + **`eslint-plugin-security`** (`recommended`).
+Relaxamentos **por regra e justificados** (ex.: `sonarjs/content-security-policy`
+— a CSP vem do host do frontend; `security/detect-non-literal-fs-filename` — fs por
+env no modo LAN). `resolutions` de `typescript` deduplica a árvore (destrava o
+SonarJS) e também **fixa versões corrigidas de deps transitivas** (CVEs de `qs`,
+`ws`, `path-to-regexp`, `socket.io-parser`).
+
+## Segurança ✅
+
+Ver [`TESTING`](TESTING.md#segurança-local-sem-ci-): **`yarn security`** (deps +
+anti-padrões, rápido) e **`yarn security:deep`** (CodeQL local, profundo). Sem CI.

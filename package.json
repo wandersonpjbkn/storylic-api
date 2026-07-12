@@ -4,7 +4,11 @@
   "private": true,
   "type": "module",
   "resolutions": {
-    "typescript": "~5.7.2"
+    "typescript": "~5.7.2",
+    "qs": "^6.15.2",
+    "path-to-regexp": "0.1.13",
+    "socket.io-parser": "^4.2.6",
+    "ws": "^8.21.0"
   },
   "scripts": {
     "dev": "tsx watch -r tsconfig-paths/register src/server.ts",
@@ -13,7 +17,10 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint src --fix",
-    "ts": "tsc --noEmit"
+    "ts": "tsc --noEmit",
+    "audit:deps": "yarn audit --groups dependencies --level moderate; c=$?; [ $((c & 28)) -eq 0 ]",
+    "security": "yarn audit:deps && yarn lint",
+    "security:deep": "bash scripts/codeql-scan.sh"
   },
   "dependencies": {
     "cors": "^2.8.5",
@@ -31,6 +38,7 @@
     "eslint": "^9.15.0",
     "eslint-import-resolver-typescript": "^4.4.4",
     "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-security": "^4.0.1",
     "eslint-plugin-sonarjs": "^4.1.0",
     "globals": "^15.12.0",
     "jiti": "^2.6.1",
