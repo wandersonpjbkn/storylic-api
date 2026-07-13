@@ -1,13 +1,15 @@
 import type { Server, Socket } from 'socket.io'
-import type { StartGamePayload } from '@/types/index.ts'
-
 import { SocketEvents } from '@/constants/socketEvents.js'
+import type { StartGamePayload } from '@/types/index.js'
+
 import { getGame, getPlayersArray, getRoomsSnapshot } from '@/utils/games.js'
+import { persistGame } from '@/utils/persistence/gameStore.js'
 import { isRateLimited } from '@/utils/rateLimiter.js'
+import { armTurnWatchdog } from '@/utils/turns.js'
 import { validateGameId } from '@/utils/validate.js'
 
 export const startGameHandler = (io: Server, socket: Socket) => {
-  socket.on(SocketEvents.EMIT_START_GAME, ({ gameId, numPlayers }: StartGamePayload) => {
+  socket.on(SocketEvents.EMIT_START_GAME, ({ gameId }: StartGamePayload) => {
     if (isRateLimited(socket.id, SocketEvents.EMIT_START_GAME)) return
 
     const err = validateGameId(gameId)
@@ -33,15 +35,20 @@ export const startGameHandler = (io: Server, socket: Socket) => {
     }
 
     game.currentPlayer = firstPlayer.id
-    game.numPlayers = numPlayers
+    game.numPlayers = getPlayersArray(game).length
     game.currentTurn = 1
     game.gameState = SocketEvents.STATE_PLAYING
     game.turnStartedAt = Date.now()
 
-    // turnDurationMs and turns already set in createGame
-    // don't overwrite them if the host configured the game before starting
+    // turnDurationMs and turns are already set by createGame/config-game —
+    // don't overwrite them if the host configured the game before starting.
 
-    console.log(`[start-game] "${gameId}" — ${game.turns} turnos, ${numPlayers} jogadores`)
+    // Authoritative watchdog: guarantees the turn advances even if the 1st
+    // player stalls/minimizes the app before confirming their hand.
+    armTurnWatchdog(io, gameId, game)
+    void persistGame(gameId, game)
+
+    console.log(`[start-game] "${gameId}" — ${game.turns} turnos, ${game.numPlayers} jogadores`)
 
     io.to(gameId).emit(SocketEvents.ON_PLAYER_TURN, {
       currentPlayer: game.currentPlayer,

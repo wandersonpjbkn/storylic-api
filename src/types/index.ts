@@ -17,13 +17,22 @@ export interface Game {
   currentPlayer: string | null
   currentTurn: number
   turns: number
+  // keep: not emitted to clients — server-side only, for the `[start-game]`
+  // log line (room size at a glance without counting `players` by hand).
   numPlayers: number
   gameState: GameState
   players: Map<string, Player>
+  // Stable reference to the Player who created the room — survives rejoin
+  // because rejoinGame.ts mutates the same Player object (never swaps the
+  // reference), only updating its `.id` to the new socket.id. Owner doesn't
+  // change on "play again" or reconnect; it only stops existing when the
+  // room itself is deleted.
+  owner: Player | null
   turnStartedAt: number | null
   turnDurationMs: number
   timerTurn: number
   timerStory: number
+  turnTimer?: ReturnType<typeof setTimeout>
 }
 
 export interface JoinGamePayload {
@@ -38,10 +47,6 @@ export interface RejoinGamePayload {
 
 export interface StartGamePayload {
   gameId: string
-  currentPlayer: string
-  numPlayers: number
-  turns: number
-  turnDurationMs?: number
 }
 
 export interface ConfigGamePayload {
@@ -53,7 +58,6 @@ export interface ConfigGamePayload {
 
 export interface FinishStorytellingPayload {
   gameId: string
-  currentPlayer: string
 }
 
 export interface CardsSelectedPayload {
@@ -68,6 +72,11 @@ export interface ResetGamePayload {
 
 export interface LeaveGamePayload {
   gameId: string
+}
+
+export interface KickPlayerPayload {
+  gameId: string
+  targetPlayerId: string
 }
 
 export interface EventRecord {

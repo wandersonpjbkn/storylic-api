@@ -1,9 +1,10 @@
 import type { Server, Socket } from 'socket.io'
-import type { LeaveGamePayload } from '@/types/index.ts'
-
 import { SocketEvents } from '@/constants/socketEvents.js'
+import type { LeaveGamePayload } from '@/types/index.js'
+
 import { getGame, getSafePlayersArray, deleteGame, getRoomsSnapshot } from '@/utils/games.js'
 import { isRateLimited } from '@/utils/rateLimiter.js'
+import { removeOfflinePlayer } from '@/utils/turns.js'
 import { validateGameId } from '@/utils/validate.js'
 
 export const leaveGameHandler = (io: Server, socket: Socket) => {
@@ -16,7 +17,7 @@ export const leaveGameHandler = (io: Server, socket: Socket) => {
     const game = getGame(gameId)
     if (!game || !game.players.has(socket.id)) return
 
-    game.players.delete(socket.id)
+    removeOfflinePlayer(io, gameId, game, socket.id)
     socket.leave(gameId)
 
     console.log(`[leave-game] ${socket.id.slice(0, 8)} saiu da sala "${gameId}"`)

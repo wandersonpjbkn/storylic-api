@@ -1,13 +1,19 @@
 import type { Server, Socket } from 'socket.io'
-import type { RejoinGamePayload } from '@/types/index.ts'
-
 import { SocketEvents } from '@/constants/socketEvents.js'
-import { getGame, getPlayersArray, getSafeOnlinePlayers, getRoomsSnapshot } from '@/utils/games.js'
+import type { Player, RejoinGamePayload } from '@/types/index.js'
+
+import {
+  clearReservationTimer,
+  getGame,
+  getPlayersArray,
+  getSafeOnlinePlayers,
+  getRoomsSnapshot,
+} from '@/utils/games.js'
+import { persistGame } from '@/utils/persistence/gameStore.js'
 import { isRateLimited } from '@/utils/rateLimiter.js'
 import { generateToken, tokensAreEqual } from '@/utils/tokens.js'
+import { armTurnWatchdog } from '@/utils/turns.js'
 import { validateGameId, validateToken } from '@/utils/validate.js'
-
-export const RESERVATION_TTL_MS = 60_000
 
 export const rejoinGameHandler = (io: Server, socket: Socket) => {
   socket.on(SocketEvents.EMIT_REJOIN_GAME, ({ gameId, token }: RejoinGamePayload) => {
@@ -47,27 +53,42 @@ export const rejoinGameHandler = (io: Server, socket: Socket) => {
       return
     }
 
-    if (existingPlayer.reservationTimer) {
-      clearTimeout(existingPlayer.reservationTimer)
-      existingPlayer.reservationTimer = undefined
-    }
+    clearReservationTimer(existingPlayer)
 
     const oldSocketId = existingPlayer.id
 
-    game.players.delete(oldSocketId)
     existingPlayer.id = socket.id
     existingPlayer.disconnectedAt = undefined
 
     const newToken = generateToken()
     existingPlayer.token = newToken
-    game.players.set(socket.id, existingPlayer)
 
-    if (game.currentPlayer === oldSocketId) game.currentPlayer = socket.id
+    // Rebuilds the Map, swapping only the key (oldSocketId → new socket.id)
+    // at the SAME position — preserves the original turn order. A plain
+    // `delete` + `set` would push the player to the end of the entry order;
+    // reconnecting alone should never reorder the queue.
+    const reordered = new Map<string, Player>()
+    for (const [key, player] of game.players) {
+      reordered.set(key === oldSocketId ? socket.id : key, player)
+    }
+    game.players = reordered
+
+    const isCurrentPlayerRejoining = game.currentPlayer === oldSocketId
+    if (isCurrentPlayerRejoining) game.currentPlayer = socket.id
 
     socket.join(gameId)
 
-    const elapsedMs = game.turnStartedAt ? Date.now() - game.turnStartedAt : 0
-    const remainingTurnMs = Math.max(0, game.turnDurationMs - elapsedMs)
+    // Reconnecting mid-turn under stress (network dropped, app minimized)
+    // shouldn't hand the player back a clock that's nearly out — reset to
+    // the full duration and re-arm the server's watchdog to match what the
+    // client will show (otherwise the server would cut the turn on the old
+    // deadline while the client still displays full time).
+    if (isCurrentPlayerRejoining && game.gameState === SocketEvents.STATE_PLAYING) {
+      game.turnStartedAt = Date.now()
+      armTurnWatchdog(io, gameId, game)
+    }
+
+    void persistGame(gameId, game)
 
     console.log(
       `[rejoin-game] "${existingPlayer.name}" reconectou em "${gameId}" (${oldSocketId.slice(0, 8)} → ${socket.id.slice(0, 8)})`,
@@ -80,7 +101,8 @@ export const rejoinGameHandler = (io: Server, socket: Socket) => {
       turns: game.turns,
       players: getSafeOnlinePlayers(game),
       isMyTurn: game.currentPlayer === socket.id,
-      remainingTurnMs,
+      isOwner: game.owner?.id === socket.id,
+      remainingTurnMs: game.turnDurationMs,
       newToken,
       timerTurn: game.timerTurn,
       timerStory: game.timerStory,

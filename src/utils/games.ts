@@ -1,12 +1,13 @@
-import type { Game } from '@/types/index.ts'
-
+import { ROOM_TTL_MS } from '@/config.js'
 import { SocketEvents } from '@/constants/socketEvents.js'
+import type { Game, Player } from '@/types/index.js'
+import { removeGame } from '@/utils/persistence/gameStore.js'
+
 
 export const games = new Map<string, Game>()
 
 const MAX_ROOMS = 12 // 1 room per club member hahah
 const MAX_PLAYERS = 12 // club members qty
-const ROOM_TTL_MS = 1 * 60 * 60 * 1000 // 1h
 
 export const getPlayersArray = (game: Game) => {
   return Array.from(game.players.values())
@@ -36,10 +37,11 @@ export const createGame = (gameId: string): Game | null => {
     numPlayers: 0,
     gameState: SocketEvents.STATE_LOBBY,
     players: new Map(),
+    owner: null,
     turnStartedAt: null,
     turnDurationMs: 25_000,
     timerTurn: 25,
-    timerStory: 45,
+    timerStory: 30,
   }
 
   games.set(gameId, game)
@@ -50,8 +52,28 @@ export const getGame = (gameId: string): Game | undefined => {
   return games.get(gameId)
 }
 
+export const clearTurnTimer = (game: Game): void => {
+  if (game.turnTimer) {
+    clearTimeout(game.turnTimer)
+    game.turnTimer = undefined
+  }
+}
+
+export const clearReservationTimer = (player: Player): void => {
+  if (player.reservationTimer) {
+    clearTimeout(player.reservationTimer)
+    player.reservationTimer = undefined
+  }
+}
+
 export const deleteGame = (gameId: string): void => {
+  const game = games.get(gameId)
+  if (game) {
+    clearTurnTimer(game)
+    for (const player of game.players.values()) clearReservationTimer(player)
+  }
   games.delete(gameId)
+  void removeGame(gameId)
 }
 
 export const canJoinGame = (game: Game): boolean => {
@@ -75,7 +97,7 @@ const cleanupInactiveRooms = (): void => {
 
     const lastActivity = game.turnStartedAt ?? 0
     if (now - lastActivity > ROOM_TTL_MS) {
-      games.delete(gameId)
+      deleteGame(gameId)
       console.log(`[cleanup] Sala "${gameId}" removida por inatividade`)
     }
   }

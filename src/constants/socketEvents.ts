@@ -3,6 +3,11 @@ export enum SocketEvents {
   STORAGE_KEY = 'storylic_session',
 
   // state
+  // keep: CONFIG/ROOMS are never assigned to `game.gameState` on this server
+  // (it only ever distinguishes lobby|playing|ended — see ARCHITECTURE.md) —
+  // but they're part of the state vocabulary shared with the client
+  // (`storylic`), which uses them locally. Kept for protocol documentation,
+  // not direct use here.
   STATE_CONFIG = 'config',
   STATE_SETUP = 'setup',
   STATE_WAITING = 'waiting',
@@ -29,11 +34,13 @@ export enum SocketEvents {
   ON_PLAYER_RECONNECTED = 'player-reconnected',
   ON_ROOMS_UPDATED = 'rooms-updated',
   ON_CONFIG_ERROR = 'config-error',
+  ON_KICKED = 'kicked',
 
   // emit
   EMIT_JOIN_GAME = 'join-game',
   EMIT_REJOIN_GAME = 'rejoin-game',
   EMIT_LEAVE_GAME = 'leave-game',
+  EMIT_KICK_PLAYER = 'kick-player',
   EMIT_START_GAME = 'start-game',
   EMIT_CONFIG_GAME = 'config-game',
   EMIT_RESET_GAME = 'reset-game',

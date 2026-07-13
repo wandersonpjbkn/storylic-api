@@ -48,6 +48,12 @@ export const validateTurns = (v: unknown): string | null => {
   return null
 }
 
+export const validatePlayerId = (v: unknown): string | null => {
+  if (!isString(v)) return 'playerId deve ser uma string'
+  if (v.trim().length === 0) return 'playerId não pode ser vazio'
+  return null
+}
+
 export const validateToken = (v: unknown): string | null => {
   if (!isString(v)) return 'token deve ser uma string'
   if (v.length !== 48) return 'token com tamanho inválido' // 24 bytes hex = 48 chars
