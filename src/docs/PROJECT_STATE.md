@@ -47,6 +47,11 @@
 
 ## Pendências / dívidas conhecidas
 
+- **Backlog de poderes/features do frontend (2026-07-13):** ver
+  `PROJECT_STATE.md` do `storylic` — vários itens vão precisar de mudanças
+  aqui também (reset de jogo em qualquer fase, abandonar a qualquer momento,
+  filtro de categorias por sala, cartas de evento, desafio secreto). Ainda
+  não desenhado; detalhar é trabalho de uma sessão de planejamento futura.
 - **Escala horizontal ⛔:** ver `ARCHITECTURE.md#escala-muitas-salas--múltiplos-processos`
   — item de **documentação**, não de código: "12 salas" já é um limite por
   processo que já suporta múltiplas salas simultâneas hoje; escala horizontal
