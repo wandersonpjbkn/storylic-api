@@ -65,7 +65,7 @@ const config = (s: ClientSocket, gameId: string, turns: number) => {
 }
 
 beforeEach(async () => {
-  server = createGameServer()
+  server = await createGameServer()
   await new Promise<void>((res) => server.httpServer.listen(0, res))
   port = (server.httpServer.address() as AddressInfo).port
 })
@@ -253,5 +253,155 @@ describe('Funcionalidade: reconexão e entrada', () => {
     const reset = waitFor<{ reason: string }>(b, 'game-reset', (d) => d.reason === 'new-game')
     a.emit('reset-game', { gameId: 's9' })
     await expect(reset).resolves.toBeDefined()
+  })
+
+  it('Cenário: reconexão preserva a posição original na ordem de turnos', async () => {
+    const [a, b, c] = await Promise.all([conn(), conn(), conn()])
+    await join(a, 's10', 'Ana')
+    const bAck = await join(b, 's10', 'Bia')
+    await join(c, 's10', 'Cid')
+    await config(a, 's10', 2)
+
+    const t0 = waitFor(a, 'player-turn')
+    a.emit('start-game', { gameId: 's10' })
+    await t0
+
+    // Bia (2ª na ordem) cai e reconecta antes da reserva expirar — não deve
+    // ir para o fim da fila.
+    const disc = waitFor(a, 'player-disconnected', (d: { playerName: string }) => d.playerName === 'Bia')
+    b.close()
+    await disc
+
+    const b2 = await conn()
+    const rejoin = waitFor(b2, 'rejoin-ack')
+    b2.emit('rejoin-game', { gameId: 's10', token: bAck.token })
+    await rejoin
+
+    // Ana termina o turno → deve ir para Bia (posição original), não para Cid.
+    const next = waitFor<{ currentPlayer: string }>(b2, 'player-turn')
+    a.emit('finish-storytelling', { gameId: 's10' })
+    expect((await next).currentPlayer).toBe(b2.id)
+  })
+
+  it('Cenário: reconexão no próprio turno reinicia o cronômetro pela duração cheia', async () => {
+    const [a, b] = await Promise.all([conn(), conn()])
+    const aAck = await join(a, 's11', 'Ana')
+    await join(b, 's11', 'Bia')
+    await config(a, 's11', 1)
+
+    const t0 = waitFor(a, 'player-turn')
+    a.emit('start-game', { gameId: 's11' })
+    await t0
+
+    const disc = waitFor(b, 'player-disconnected', (d: { playerName: string }) => d.playerName === 'Ana')
+    a.close()
+    await disc
+
+    const a2 = await conn()
+    const rejoin = waitFor<{ remainingTurnMs: number; isMyTurn: boolean }>(a2, 'rejoin-ack')
+    a2.emit('rejoin-game', { gameId: 's11', token: aAck.token })
+    const ack = await rejoin
+    expect(ack.isMyTurn).toBe(true)
+    expect(ack.remainingTurnMs).toBe(5000) // timerTurn:5s configurado em `config()`
+  })
+})
+
+describe('Funcionalidade: dono da sala', () => {
+  it('Cenário: só o dono pode alterar a configuração', async () => {
+    const [a, b] = await Promise.all([conn(), conn()])
+    await join(a, 's12', 'Ana')
+    await join(b, 's12', 'Bia')
+
+    const err = waitFor<{ reason: string }>(b, 'config-error')
+    b.emit('config-game', { gameId: 's12', timerTurn: 10, timerStory: 10, turns: 2 })
+    expect((await err).reason).toMatch(/dono/i)
+  })
+
+  it('Cenário: dono segue sendo dono após reconectar e após "jogar de novo"', async () => {
+    const [a, b] = await Promise.all([conn(), conn()])
+    const aAck = await join(a, 's13', 'Ana')
+    await join(b, 's13', 'Bia')
+
+    const disc = waitFor(b, 'player-disconnected', (d: { playerName: string }) => d.playerName === 'Ana')
+    a.close()
+    await disc
+
+    const a2 = await conn()
+    const rejoin = waitFor<{ isOwner: boolean }>(a2, 'rejoin-ack')
+    a2.emit('rejoin-game', { gameId: 's13', token: aAck.token })
+    expect((await rejoin).isOwner).toBe(true)
+
+    // Ana (dona) ainda consegue configurar depois de reconectar.
+    const cfg = waitFor(a2, 'room-config')
+    a2.emit('config-game', { gameId: 's13', timerTurn: 8, timerStory: 8, turns: 3 })
+    await expect(cfg).resolves.toBeDefined()
+  })
+
+  it('Cenário: configuração é recusada fora do lobby', async () => {
+    const [a, b] = await Promise.all([conn(), conn()])
+    await join(a, 's14', 'Ana')
+    await join(b, 's14', 'Bia')
+    await config(a, 's14', 1)
+
+    const t0 = waitFor(a, 'player-turn')
+    a.emit('start-game', { gameId: 's14' })
+    await t0
+
+    const err = waitFor<{ reason: string }>(a, 'config-error')
+    a.emit('config-game', { gameId: 's14', timerTurn: 10, timerStory: 10, turns: 2 })
+    expect((await err).reason).toMatch(/lobby/i)
+  })
+})
+
+describe('Funcionalidade: remover jogador (kick)', () => {
+  it('Cenário: apenas o dono pode remover outro jogador', async () => {
+    const [a, b, c] = await Promise.all([conn(), conn(), conn()])
+    await join(a, 's15', 'Ana')
+    await join(b, 's15', 'Bia')
+    await join(c, 's15', 'Cid')
+
+    // Bia (não é dona) tenta remover Cid — não deve surtir efeito nenhum.
+    const kicked = new Promise<boolean>((resolve) => {
+      c.once('kicked', () => resolve(true))
+      setTimeout(() => resolve(false), 500)
+    })
+    b.emit('kick-player', { gameId: 's15', targetPlayerId: c.id })
+    expect(await kicked).toBe(false)
+  })
+
+  it('Cenário: dono remove um jogador — ele é notificado e não consegue mais voltar', async () => {
+    const [a, b] = await Promise.all([conn(), conn()])
+    await join(a, 's16', 'Ana')
+    const bAck = await join(b, 's16', 'Bia')
+
+    const kicked = waitFor<{ reason: string }>(b, 'kicked')
+    a.emit('kick-player', { gameId: 's16', targetPlayerId: b.id })
+    expect((await kicked).reason).toMatch(/removid/i)
+
+    const err = waitFor<{ reason: string }>(b, 'rejoin-error')
+    b.emit('rejoin-game', { gameId: 's16', token: bAck.token })
+    await expect(err).resolves.toBeDefined()
+  })
+
+  it('Cenário: remover o jogador da vez passa o turno adiante', async () => {
+    const [a, b, c] = await Promise.all([conn(), conn(), conn()])
+    await join(a, 's17', 'Ana')
+    await join(b, 's17', 'Bia')
+    await join(c, 's17', 'Cid')
+    await config(a, 's17', 1)
+
+    const t0 = waitFor(a, 'player-turn')
+    a.emit('start-game', { gameId: 's17' })
+    await t0
+
+    // Bia vira a jogadora da vez.
+    const t1 = waitFor(a, 'player-turn', (d: { currentPlayer: string }) => d.currentPlayer === b.id)
+    a.emit('finish-storytelling', { gameId: 's17' })
+    await t1
+
+    // Ana (dona) remove Bia, que é a jogadora da vez — passa para Cid.
+    const next = waitFor<{ currentPlayer: string }>(a, 'player-turn')
+    a.emit('kick-player', { gameId: 's17', targetPlayerId: b.id })
+    expect((await next).currentPlayer).toBe(c.id)
   })
 })

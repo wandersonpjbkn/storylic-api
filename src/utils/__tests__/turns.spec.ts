@@ -2,7 +2,7 @@ import type { Server } from 'socket.io'
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 
 import { SocketEvents } from '@/constants/socketEvents.js'
-import type { Game, Player } from '@/types/index.ts'
+import type { Game, Player } from '@/types/index.js'
 import { games, clearTurnTimer } from '@/utils/games.js'
 import { advanceTurn } from '@/utils/turns.js'
 
@@ -33,6 +33,7 @@ const makeGame = (ids: [string, boolean][], currentPlayer: string, currentTurn: 
   numPlayers: ids.length,
   gameState: SocketEvents.STATE_PLAYING,
   players: new Map(ids.map(([id, online]) => [id, player(id, online)])),
+  owner: null,
   turnStartedAt: Date.now(),
   turnDurationMs: 5000,
   timerTurn: 5,

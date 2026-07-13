@@ -4,9 +4,9 @@ import { defineConfig } from 'vitest/config'
 
 const srcDir = fileURLToPath(new URL('./src', import.meta.url))
 
-// O código usa imports estilo NodeNext (`@/foo.js`) que apontam para arquivos
-// `.ts`. O primeiro alias reescreve `@/algo.js` → `src/algo.ts`; o segundo cobre
-// os imports de tipo com `.ts` explícito e os sem extensão.
+// The code uses NodeNext-style imports (`@/foo.js`) pointing at `.ts` files.
+// The first alias rewrites `@/algo.js` → `src/algo.ts`; the second covers
+// extension-less imports (e.g. `@/constants/socketEvents`).
 export default defineConfig({
   resolve: {
     alias: [

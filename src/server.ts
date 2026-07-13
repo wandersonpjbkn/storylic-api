@@ -2,7 +2,7 @@ import 'dotenv/config'
 
 import { createGameServer } from '@/app.js'
 
-const { httpServer, allowedOrigins } = createGameServer()
+const { httpServer, allowedOrigins } = await createGameServer()
 
 const PORT = Number(process.env.API_PORT ?? 3000)
 const HOST = process.env.API_LOCALHOST

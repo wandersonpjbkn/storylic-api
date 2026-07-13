@@ -1,6 +1,6 @@
 import type { Server, Socket } from 'socket.io'
 import { SocketEvents } from '@/constants/socketEvents.js'
-import type { CardsSelectedPayload } from '@/types/index.ts'
+import type { CardsSelectedPayload } from '@/types/index.js'
 
 import { getGame } from '@/utils/games.js'
 import { isRateLimited } from '@/utils/rateLimiter.js'
@@ -18,8 +18,8 @@ export const cardsSelectedHandler = (_io: Server, socket: Socket) => {
       const game = getGame(gameId)
       if (!game || !game.players.has(socket.id)) return
 
-      // Só o jogador da vez revela a mão — e a identidade vem do servidor, não do
-      // cliente (evita spoofing de playerNumber).
+      // Only the current player reveals their hand — identity comes from the
+      // server, never the client (avoids playerNumber spoofing).
       if (game.currentPlayer !== socket.id) return
 
       const safeCards = Array.isArray(cards) ? cards.slice(0, 3) : []

@@ -1,6 +1,6 @@
 import type { Server, Socket } from 'socket.io'
 import { SocketEvents } from '@/constants/socketEvents.js'
-import type { FinishStorytellingPayload } from '@/types/index.ts'
+import type { FinishStorytellingPayload } from '@/types/index.js'
 
 import { getGame } from '@/utils/games.js'
 import { isRateLimited } from '@/utils/rateLimiter.js'
@@ -22,9 +22,9 @@ export const finishStorytellingHandler = (io: Server, socket: Socket) => {
         return
       }
 
-      // Só o jogador da vez encerra o próprio turno. Idempotente por natureza:
-      // um segundo emit (ex.: retry após blip de rede) já não bate mais aqui,
-      // pois o currentPlayer avançou.
+      // Only the current player can end their own turn. Idempotent by nature:
+      // a second emit (e.g. a retry after a network blip) no longer matches
+      // here once currentPlayer has advanced.
       if (game.currentPlayer !== socket.id) {
         console.warn(
           `[finish-storytelling] Socket ${socket.id.slice(0, 8)} não é o jogador atual em "${gameId}"`,

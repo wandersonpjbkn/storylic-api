@@ -1,6 +1,6 @@
 import type { Server, Socket } from 'socket.io'
 import { SocketEvents } from '@/constants/socketEvents.js'
-import type { JoinGamePayload } from '@/types/index.ts'
+import type { JoinGamePayload } from '@/types/index.js'
 
 import {
   games,
@@ -10,6 +10,7 @@ import {
   getRoomsSnapshot,
   canJoinGame,
 } from '@/utils/games.js'
+import { persistGame } from '@/utils/persistence/gameStore.js'
 import { isRateLimited } from '@/utils/rateLimiter.js'
 import { generateToken } from '@/utils/tokens.js'
 import { validateGameId, validatePlayerName } from '@/utils/validate.js'
@@ -33,8 +34,8 @@ export const joinGameHandler = (io: Server, socket: Socket) => {
       return
     }
 
-    // gameId já é validado como minúsculo por validateGameId; usa o mesmo valor
-    // em join/leave/emit para evitar inconsistência de "room" no Socket.io.
+    // gameId is already validated as lowercase by validateGameId; the same
+    // value is used across join/leave/emit to avoid a Socket.io "room" mismatch.
     socket.join(gameId)
 
     const isNewRoom = !games.has(gameId)
@@ -62,13 +63,19 @@ export const joinGameHandler = (io: Server, socket: Socket) => {
     }
 
     const token = generateToken()
-    game.players.set(socket.id, {
+    const player = {
       id: socket.id,
       name: playerName.trim(),
       token,
       disconnectedAt: undefined,
       reservationTimer: undefined,
-    })
+    }
+    game.players.set(socket.id, player)
+    // Owner is fixed at room creation and never recalculated — survives
+    // rejoin and "play again" (see comment on `types/index.ts#Game`).
+    if (isNewRoom) game.owner = player
+
+    void persistGame(gameId, game)
 
     console.log(
       `[join-game] "${playerName.trim()}" (${socket.id.slice(0, 8)}) → sala "${gameId}" (${game.players.size} jogadores)`,

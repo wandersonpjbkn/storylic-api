@@ -1,14 +1,9 @@
 import type { Server, Socket } from 'socket.io'
 import { SocketEvents } from '@/constants/socketEvents.js'
-import type { ResetGamePayload } from '@/types/index.ts'
+import type { ResetGamePayload } from '@/types/index.js'
 
-import {
-  clearTurnTimer,
-  getGame,
-  getPlayersArray,
-  getSafePlayersArray,
-  getRoomsSnapshot,
-} from '@/utils/games.js'
+import { clearTurnTimer, getGame, getSafePlayersArray, getRoomsSnapshot } from '@/utils/games.js'
+import { persistGame } from '@/utils/persistence/gameStore.js'
 import { isRateLimited } from '@/utils/rateLimiter.js'
 import { validateGameId } from '@/utils/validate.js'
 
@@ -39,14 +34,14 @@ export const resetGameHandler = (io: Server, socket: Socket) => {
     game.turnStartedAt = null
     game.turnDurationMs = game.timerTurn * 1000
 
+    void persistGame(gameId, game)
+
     console.log(`[reset-game] "${gameId}" resetada com ${game.players.size} jogador(es)`)
 
-    const firstPlayer = getPlayersArray(game)[0]
-    const creatorId = firstPlayer?.id ?? null
-
+    // Owner is fixed (see `Game.owner`) and unaffected by a reset; the client
+    // already knows whether it's the owner from join/rejoin.
     io.to(gameId).emit(SocketEvents.ON_GAME_RESET, {
       reason: 'new-game',
-      creatorId,
       timerTurn: game.timerTurn,
       timerStory: game.timerStory,
       turns: game.turns,

@@ -1,10 +1,10 @@
 import type { Server, Socket } from 'socket.io'
 import { SocketEvents } from '@/constants/socketEvents.js'
-import type { LeaveGamePayload } from '@/types/index.ts'
+import type { LeaveGamePayload } from '@/types/index.js'
 
 import { getGame, getSafePlayersArray, deleteGame, getRoomsSnapshot } from '@/utils/games.js'
 import { isRateLimited } from '@/utils/rateLimiter.js'
-import { advanceTurn } from '@/utils/turns.js'
+import { removeOfflinePlayer } from '@/utils/turns.js'
 import { validateGameId } from '@/utils/validate.js'
 
 export const leaveGameHandler = (io: Server, socket: Socket) => {
@@ -17,10 +17,7 @@ export const leaveGameHandler = (io: Server, socket: Socket) => {
     const game = getGame(gameId)
     if (!game || !game.players.has(socket.id)) return
 
-    const wasCurrentPlayer =
-      game.gameState === SocketEvents.STATE_PLAYING && game.currentPlayer === socket.id
-
-    game.players.delete(socket.id)
+    removeOfflinePlayer(io, gameId, game, socket.id)
     socket.leave(gameId)
 
     console.log(`[leave-game] ${socket.id.slice(0, 8)} saiu da sala "${gameId}"`)
@@ -29,9 +26,6 @@ export const leaveGameHandler = (io: Server, socket: Socket) => {
       deleteGame(gameId)
       console.log(`[leave-game] Sala "${gameId}" removida — sem jogadores`)
     } else {
-      // Se quem saiu era o jogador da vez, passa o turno para não travar a sala.
-      if (wasCurrentPlayer) advanceTurn(io, gameId, game)
-
       io.to(gameId).emit(SocketEvents.ON_GAME_STATE, {
         currentPlayer: game.currentPlayer,
         players: getSafePlayersArray(game),

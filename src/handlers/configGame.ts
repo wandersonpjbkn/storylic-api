@@ -1,8 +1,9 @@
 import type { Server, Socket } from 'socket.io'
 import { SocketEvents } from '@/constants/socketEvents.js'
-import type { ConfigGamePayload } from '@/types/index.ts'
+import type { ConfigGamePayload } from '@/types/index.js'
 
 import { getGame } from '@/utils/games.js'
+import { persistGame } from '@/utils/persistence/gameStore.js'
 import { isRateLimited } from '@/utils/rateLimiter.js'
 import {
   validateGameId,
@@ -33,10 +34,19 @@ export const configGameHandler = (io: Server, socket: Socket) => {
         return
       }
 
-      if (!game.players.has(socket.id)) {
-        console.warn(
-          `[config-game] Socket ${socket.id.slice(0, 8)} não pertence à sala "${gameId}"`,
-        )
+      if (game.owner?.id !== socket.id) {
+        console.warn(`[config-game] Socket ${socket.id.slice(0, 8)} não é dono da sala "${gameId}"`)
+        socket.emit(SocketEvents.ON_CONFIG_ERROR, {
+          reason: 'Apenas o dono da sala pode alterar a configuração.',
+        })
+        return
+      }
+
+      if (game.gameState !== SocketEvents.STATE_LOBBY) {
+        console.warn(`[config-game] Sala "${gameId}" não está no lobby`)
+        socket.emit(SocketEvents.ON_CONFIG_ERROR, {
+          reason: 'A configuração só pode ser alterada no lobby.',
+        })
         return
       }
 
@@ -44,6 +54,8 @@ export const configGameHandler = (io: Server, socket: Socket) => {
       game.timerStory = timerStory
       game.turns = turns
       game.turnDurationMs = timerTurn * 1000
+
+      void persistGame(gameId, game)
 
       console.log(
         `[config-game] "${gameId}" — cards:${timerTurn}s narração:${timerStory}s turnos:${turns}`,

@@ -1,6 +1,7 @@
 import type { Server } from 'socket.io'
+import { TURN_GRACE_MS } from '@/config.js'
 import { SocketEvents } from '@/constants/socketEvents.js'
-import type { Game } from '@/types/index.ts'
+import type { Game } from '@/types/index.js'
 
 import {
   clearTurnTimer,
@@ -9,21 +10,26 @@ import {
   getPlayersArray,
   getRoomsSnapshot,
 } from '@/utils/games.js'
-
-// Folga extra sobre (tempo de cards + tempo de narração) antes do servidor
-// assumir que o jogador da vez travou/minimizou o app/caiu e avançar sozinho.
-const TURN_GRACE_MS = Number(process.env.TURN_GRACE_MS ?? 8_000)
+import { persistGame } from '@/utils/persistence/gameStore.js'
 
 /**
- * Watchdog autoritativo de turno. A progressão do jogo não pode depender só do
- * cronômetro do cliente do jogador da vez: no mobile, se ele minimiza o app ou
- * perde conexão, o `setInterval` congela e a sala inteira trava. Aqui o servidor
- * garante que o turno sempre avança, mesmo sem receber `finish-storytelling`.
+ * Absolute deadline (epoch ms) by which the current player must act before
+ * the watchdog takes over. Shared by `armTurnWatchdog` and by persistence
+ * (Redis snapshot) so both compute it the same way.
+ */
+export const getTurnDeadline = (game: Game): number =>
+  (game.turnStartedAt ?? Date.now()) + game.turnDurationMs + game.timerStory * 1000 + TURN_GRACE_MS
+
+/**
+ * Authoritative turn watchdog. Game progression can't depend only on the
+ * current player's client clock: on mobile, minimizing the app or losing
+ * connection freezes `setInterval` and would stall the whole room. This
+ * guarantees the turn always advances, even without a `finish-storytelling`.
  */
 export const armTurnWatchdog = (io: Server, gameId: string, game: Game): void => {
   clearTurnTimer(game)
 
-  const totalMs = game.turnDurationMs + game.timerStory * 1000 + TURN_GRACE_MS
+  const totalMs = getTurnDeadline(game) - (game.turnStartedAt ?? Date.now())
 
   game.turnTimer = setTimeout(() => {
     const fresh = getGame(gameId)
@@ -36,15 +42,15 @@ export const armTurnWatchdog = (io: Server, gameId: string, game: Game): void =>
 }
 
 /**
- * Avança para o próximo jogador **online**, pulando vagas reservadas/desconectadas.
- * Ao fim da rodada, incrementa o turno ou encerra a partida. Sempre rearma o
- * watchdog para o próximo jogador.
+ * Advances to the next **online** player, skipping reserved/disconnected
+ * slots. At the end of a round, increments the turn or ends the match.
+ * Always rearms the watchdog for whoever goes next.
  */
 export const advanceTurn = (io: Server, gameId: string, game: Game): void => {
   const allPlayers = getPlayersArray(game)
   const currentIndex = allPlayers.findIndex(({ id }) => id === game.currentPlayer)
 
-  // Próximo jogador online logo após o atual, na ordem de entrada
+  // Next online player right after the current one, in join order
   const nextOnline = allPlayers.find(
     (p, idx) => idx > currentIndex && p.disconnectedAt === undefined,
   )
@@ -53,6 +59,7 @@ export const advanceTurn = (io: Server, gameId: string, game: Game): void => {
     game.currentPlayer = nextOnline.id
     game.turnStartedAt = Date.now()
     armTurnWatchdog(io, gameId, game)
+    void persistGame(gameId, game)
 
     console.log(`[turn] Próximo: "${nextOnline.name}" — turno ${game.currentTurn}/${game.turns}`)
 
@@ -63,7 +70,7 @@ export const advanceTurn = (io: Server, gameId: string, game: Game): void => {
     return
   }
 
-  // Ninguém online depois do atual → nova rodada ou fim
+  // Nobody online after the current player → new round or end of game
   const onlinePlayers = getOnlinePlayers(game)
 
   if (game.currentTurn < game.turns && onlinePlayers.length > 0) {
@@ -71,6 +78,7 @@ export const advanceTurn = (io: Server, gameId: string, game: Game): void => {
     game.currentPlayer = onlinePlayers[0].id
     game.turnStartedAt = Date.now()
     armTurnWatchdog(io, gameId, game)
+    void persistGame(gameId, game)
 
     console.log(`[turn] Nova rodada ${game.currentTurn}/${game.turns} — "${onlinePlayers[0].name}"`)
 
@@ -81,13 +89,33 @@ export const advanceTurn = (io: Server, gameId: string, game: Game): void => {
     return
   }
 
-  // Fim de jogo (todas as rodadas concluídas ou sem ninguém online para seguir)
+  // Game over (all rounds completed, or nobody online left to continue)
   game.gameState = SocketEvents.STATE_ENDED
   game.turnStartedAt = null
   clearTurnTimer(game)
+  void persistGame(gameId, game)
 
   console.log(`[turn] Sala "${gameId}" finalizada`)
 
   io.to(gameId).emit(SocketEvents.ON_GAME_ENDED)
   io.emit(SocketEvents.ON_ROOMS_UPDATED, getRoomsSnapshot())
+}
+
+/**
+ * Removes a player who's leaving for good — voluntary leave, kick, or an
+ * expired reconnection reservation. Advances the turn first if they were the
+ * current player: `advanceTurn` locates them by index in the players Map, so
+ * deleting first would break that lookup (see `advanceTurn`'s `currentIndex`
+ * above). Callers handle their own broadcast/cleanup after this returns.
+ */
+export const removeOfflinePlayer = (io: Server, gameId: string, game: Game, playerId: string): void => {
+  const wasCurrentPlayer = game.gameState === SocketEvents.STATE_PLAYING && game.currentPlayer === playerId
+
+  const player = game.players.get(playerId)
+  if (player) player.disconnectedAt = Date.now()
+
+  if (wasCurrentPlayer) advanceTurn(io, gameId, game)
+
+  game.players.delete(playerId)
+  void persistGame(gameId, game)
 }

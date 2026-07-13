@@ -85,8 +85,8 @@ apontar para `http://<IP-do-notebook>:3000`.
 | Evento | Payload | Descrição |
 |---|---|---|
 | `join-game` | `{ gameId, playerName }` | Entra em uma sala |
-| `start-game` | `{ gameId, currentPlayer, numPlayers, turns }` | Inicia a partida |
-| `finish-storytelling` | `{ gameId, currentPlayer }` | Finaliza o turno de narração |
+| `start-game` | `{ gameId }` | Inicia a partida |
+| `finish-storytelling` | `{ gameId }` | Finaliza o turno de narração |
 | `cards-selected` | `{ gameId, cards, playerNumber }` | Confirma as cartas escolhidas |
 | `reset-game` | `{ gameId }` | Reinicia a partida |
 | `leave-game` | `{ gameId }` | Sai da sala explicitamente |

@@ -1,5 +1,5 @@
 import { SocketEvents } from '@/constants/socketEvents.js'
-import type { EventRecord, RateLimitOptions } from '@/types/index.ts'
+import type { EventRecord, RateLimitOptions } from '@/types/index.js'
 
 
 // socketId → eventName → timestamps

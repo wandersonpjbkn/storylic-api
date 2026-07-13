@@ -69,3 +69,9 @@ Duas camadas que rodam via `yarn`, como os outros gates:
   indiretamente pela integração).
 - `security:deep` (CodeQL) roda na máquina do dev; não foi possível fazer o smoke
   completo no ambiente da auditoria (o proxy bloqueia o download do bundle — 403).
+- `src/utils/persistence/*` ainda sem teste automatizado (exigiria um Redis
+  real ou mock na suíte, fora do escopo de "sem CI" atual) — verificado
+  manualmente: snapshot → derrubar o processo → subir de novo → sala e
+  reserva rehidratadas, `rejoin-game` funciona com o token antigo. A suíte
+  padrão roda com `REDIS_URL` vazio (opt-out), onde o comportamento é
+  idêntico a antes.
